@@ -87,15 +87,15 @@ class CreateReleaseBranch extends Command {
             try {
                 $this->runProcess("git merge origin/{$issueBranchName}");
             } catch (\Exception $e) {
-                // If the merge results in merge conflicts, abort the merge and continue
+                // If the merge results in merge conflicts, pause the merge and continue when ready.
                 if (str_contains($e->getMessage(), 'merge failed')) {
                     $issue = explode('-', $issueBranchName)[0];
-                    $this->warn("Merge conflict detected for issue {$issue}. Please resolve manually, then continue when ready.");
-                    $this->confirm("Continue?");
+                    $this->warn("Merge conflict detected with issue {$issue}."
+                        . " Please resolve manually, then continue when you've committed the merge.");
+                    $this->confirm("Ready to continue?");
                 } else {
                     Log::error($e->getMessage());
                     return $this->error($e->getMessage());
-                    // throw $e;
                 }
             }
         }

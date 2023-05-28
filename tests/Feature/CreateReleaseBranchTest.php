@@ -94,7 +94,7 @@ it('asks to continue when hitting merge conflicts', function () {
         ->expectsOutput('Pulling issue branches into release branch.')
         ->expectsOutput('Merging issue 123 into release branch.')
         ->expectsOutput('Merging issue 456 into release branch.')
-        ->expectsOutput('Merge conflict detected for issue 456. Please resolve manually, then continue when ready.')
-        ->expectsConfirmation('Continue?', 'no')
+        ->expectsOutput('Merge conflict detected with issue 456. Please resolve manually, then continue when you\'ve committed the merge.')
+        ->expectsConfirmation('Ready to continue?', 'no')
         ->run();
 })->group('dummy-git-repo');
