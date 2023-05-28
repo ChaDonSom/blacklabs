@@ -38,6 +38,14 @@ class Deploy extends Command
             return;
         }
 
+        // If the working tree is dirty, exit
+        $this->info('Checking working tree...');
+        $dirty = trim($this->runProcess('git status --porcelain'));
+        if ($dirty) {
+            $this->error('Working tree is dirty. Commit or stash your changes and try again.');
+            return;
+        }
+
         $repo = $git->open(getcwd());
         $this->info('Deploying blacklabs CLI to Packagist.');
         $repo->checkout('master');
