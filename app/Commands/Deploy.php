@@ -82,6 +82,7 @@ class Deploy extends Command
         $this->info('Tagging release...');
         $repo->createTag($version, [ '-m' => "Release {$version}" ]);
         $this->info('Pushing tag...');
+        $repo->push();
         $repo->push('origin', ['--tags']);
 
         $this->info('Done.');
