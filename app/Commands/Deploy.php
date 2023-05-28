@@ -46,6 +46,15 @@ class Deploy extends Command
             return;
         }
 
+        // If master isn't pushed, exit
+        $this->info('Checking remote...');
+        $this->runProcess('git fetch');
+        $ahead = trim($this->runProcess('git rev-list --count --left-only @{u}...HEAD'));
+        if ($ahead) {
+            $this->error('Local master is ahead of remote. Push your changes and try again.');
+            return;
+        }
+
         $repo = $git->open(getcwd());
         $this->info('Deploying blacklabs CLI to Packagist.');
         $repo->checkout('master');
