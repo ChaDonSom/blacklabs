@@ -59,7 +59,7 @@ class Deploy extends Command
         $this->runProcess('php blacklabs app:build --build-version=' . $version);
 
         $this->info('Committing changes...');
-        $repo->addFile('build/blacklabs');
+        $repo->addFile('builds/blacklabs');
         $repo->commit('Build Phar for version ' . $version);
 
         $this->info('Tagging release...');
@@ -67,7 +67,7 @@ class Deploy extends Command
         $this->info('Pushing tag...');
         $repo->push('origin', ['--tags']);
 
-        $this->task('Done', true);
+        $this->info('Done.');
     }
 
     /**
