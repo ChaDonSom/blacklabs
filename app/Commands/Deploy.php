@@ -56,7 +56,7 @@ class Deploy extends Command
         $this->info("New version number: {$version}");
 
         $this->info('Building Phar...');
-        $this->runProcess('php blacklabs build --build-version=' . $version);
+        $this->runProcess('php blacklabs app:build --build-version=' . $version);
 
         $this->info('Committing changes...');
         $repo->addFile('build/blacklabs');
