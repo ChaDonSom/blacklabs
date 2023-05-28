@@ -1,5 +1,7 @@
 <?php
 
+use App\Commands\Deploy;
+
 return [
 
     /*
@@ -63,6 +65,7 @@ return [
         Illuminate\Console\Scheduling\ScheduleFinishCommand::class,
         Illuminate\Foundation\Console\VendorPublishCommand::class,
         LaravelZero\Framework\Commands\StubPublishCommand::class,
+        Deploy::class,
     ],
 
     /*

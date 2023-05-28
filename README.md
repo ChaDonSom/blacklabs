@@ -34,6 +34,22 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
         > :spiral_notepad: Note
         >
         > This means each issue's branch needs to be pushed to origin beforehand.
+    4. If it runs into a merge conflict, it will pause and ask you to resolve the merge manually. After resolving it, you can tell it to continue.
 4. Once the merging is done, it pushes the branch to `origin`.
 5. Then, it creates a PR for the release with each issue listed in its description.
 6. Then, it adds a tag as well for that version (and pushes it).
+
+## Contributing
+
+### Deploy process
+
+```sh
+php blacklabs app:deploy
+```
+
+1. Make sure you're on master
+2. Run tests `php blacklabs test`
+3. build `php blacklabs app:build` - give it the version
+4. Commit it
+5. Create a tag for that version
+6. Push tags (includes the master branch)
