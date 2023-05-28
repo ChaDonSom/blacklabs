@@ -40,7 +40,7 @@ return [
     |
     */
 
-    'env' => 'development',
+    'env' => env('APP_ENV', 'development'),
 
     /*
     |--------------------------------------------------------------------------
@@ -68,6 +68,8 @@ return [
 
     'providers' => [
         App\Providers\AppServiceProvider::class,
+        App\Providers\GitServiceProvider::class,
+        Intonate\TinkerZero\TinkerZeroServiceProvider::class,
     ],
 
 ];

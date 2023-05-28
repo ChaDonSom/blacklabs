@@ -11,7 +11,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        //
+        # ensure you configure the right channel you use
+        config([
+            'logging.channels.single.path' => \Phar::running()
+                ? dirname(\Phar::running(false)) . '/var/log/blacklabs.log'
+                : storage_path('logs/blacklabs.log')
+        ]);
     }
 
     /**
