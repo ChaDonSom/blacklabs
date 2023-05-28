@@ -12,6 +12,18 @@ The Black Labs CLI, for our work.
 composer global require blacklabs/blacklabs
 ```
 
+### Updating
+
+```sh
+composer global update blacklabs/blacklabs
+```
+
+```sh
+blacklabs self-update
+```
+
+This command has been lately throwing an error about `zlib` or something. However, it doesn't appear to cause any problems.
+
 ## Usage
 
 ### Devops
