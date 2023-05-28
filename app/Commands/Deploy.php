@@ -49,7 +49,7 @@ class Deploy extends Command
         // If master isn't pushed, exit
         $this->info('Checking remote...');
         $this->runProcess('git fetch');
-        $ahead = trim($this->runProcess('git rev-list --count --left-only @{u}...HEAD'));
+        $ahead = trim($this->runProcess('git rev-list --count --left-only HEAD...@{u}'));
         if ($ahead) {
             $this->error('Local master is ahead of remote. Push your changes and try again.');
             return;
