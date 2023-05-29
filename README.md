@@ -59,10 +59,10 @@ blacklabs devops:update-site-branch-and-deploy
 
 This command pings Forge (if you haven't given the app a Forge API token yet, do that first: `blacklabs app:store-forge-api-token <token>`).
 
-1. First, it asks you which site to deploy to, after getting the list of sites from Forge, filtering by sites that have the 'console' tag.
-2. Then, it asks you which branch to deploy.
-3. Then, it pings Forge to update that site's branch.
-4. Then, it pings Forge again to deploy that site.
+1. First, it asks you which site to deploy to, out of the list of sites from Forge, filtered by sites that have the 'console' tag.
+2. Then, it asks you which branch to deploy. For the options here, it uses `git branch -r` (`-r` for 'remotes', showing only the branches that are pushed to origin).
+3. Then, it pings Forge to update that site's branch to the branch you chose.
+4. Then, it pings Forge again to initiate deployment for that site.
 
 ## Contributing
 
