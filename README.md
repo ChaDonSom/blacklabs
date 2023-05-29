@@ -51,6 +51,19 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
 5. Then, it creates a PR for the release with each issue listed in its description.
 6. Then, it adds a tag as well for that version (and pushes it).
 
+### Update site branch and deploy
+
+```sh
+blacklabs devops:update-site-branch-and-deploy
+```
+
+This command pings Forge (if you haven't given the app a Forge API token yet, do that first: `blacklabs app:store-forge-api-token <token>`).
+
+1. First, it asks you which site to deploy to, after getting the list of sites from Forge, filtering by sites that have the 'console' tag.
+2. Then, it asks you which branch to deploy.
+3. Then, it pings Forge to update that site's branch.
+4. Then, it pings Forge again to deploy that site.
+
 ## Contributing
 
 ### Deploy process
@@ -58,6 +71,8 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
 ```sh
 php blacklabs app:deploy
 ```
+
+This command does:
 
 1. Make sure you're on master
 2. Run tests `php blacklabs test`
