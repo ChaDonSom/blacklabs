@@ -20,40 +20,6 @@ it('exits with a version but no issues', function () {
     }
 });
 
-uses()->group('dummy-git-repo')->beforeEach(function () {
-    $this->git = app()->make(Git::class);
-    // Force remove the directory
-    exec('rm -rf /tmp/test-repo');
-    exec('rm -rf /tmp/test-repo-origin');
-    $this->repo = $this->git->init('/tmp/test-repo-origin');
-    chdir('/tmp/test-repo-origin');
-    touch('./README.md');
-    $this->repo->addAllChanges();
-    $this->repo->commit('Initial commit');
-    $this->repo->createBranch('dev', true);
-    file_put_contents('./README.md', 'dev');
-    $this->repo->addAllChanges();
-    $this->repo->commit('Initial dev commit');
-    // Create two branches
-    $this->branchOneName = '123-' . Str::kebab(collect(fake()->words())->join('-'));
-    $this->repo->createBranch($this->branchOneName, true);
-    touch('./README-123.md');
-    $this->repo->addAllChanges();
-    $this->repo->commit('123 commit');
-    $this->repo->checkout('dev');
-    $this->branchTwoName = '456-' . Str::kebab(collect(fake()->words())->join('-'));
-    $this->repo->createBranch($this->branchTwoName, true);
-    touch('./README-456.md');
-    $this->repo->addAllChanges();
-    $this->repo->commit('456 commit');
-
-    $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
-    chdir('/tmp/test-repo');
-})->afterEach(function () {
-    exec('rm -rf /tmp/test-repo');
-    exec('rm -rf /tmp/test-repo-origin');
-});
-
 it('works in a dummy git repo', function () {
     $this->artisan('devops:create-release-branch 0.23.2 123,456')
         ->expectsOutput('Creating release branch for version 0.23.2.')
@@ -116,6 +82,46 @@ it('can delete the branch if instructed to', function () {
         ->expectsOutput('Creating release tag.')
         ->expectsOutput('Done.')
         ->expectsOutput('Branch: release/0.23.2-123-456')
+        ->assertExitCode(0)
+        ->run();
+})->group('dummy-git-repo');
+
+it('can skip missing issue branches', function() {
+    $this->artisan('devops:create-release-branch 0.23.2 123,324')
+        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Creating release branch.')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Merging issue 123 into release branch.')
+        ->expectsOutput('No branch found for issue 324. Please choose one, or skip this issue for now.')
+        ->expectsQuestion('Choose a branch for issue 324', 'Skip')
+        ->run();
+})->group('dummy-git-repo');
+
+it('can use provided missing issue branches', function () {
+    $this->branchThreeName = 'different-name-' . Str::kebab(collect(fake()->words())->join('-'));
+    $this->repo->createBranch($this->branchThreeName, true);
+    touch('./README-324.md');
+    $this->repo->addAllChanges();
+    $this->repo->commit('324 commit');
+    exec('git push --set-upstream origin ' . $this->branchThreeName);
+
+    $this->artisan('devops:create-release-branch 0.23.2 123,324')
+        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Creating release branch.')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Merging issue 123 into release branch.')
+        ->expectsOutput('Merging issue 324 into release branch.')
+        ->expectsOutput('No branch found for issue 324. Please choose one, or skip this issue for now.')
+        ->expectsQuestion('Choose a branch for issue 324', $this->branchThreeName)
+        ->expectsOutput('Pushing release branch to origin.')
+        ->expectsOutput('Creating release PR.')
+        ->expectsOutput('Creating release tag.')
+        ->expectsOutput('Done.')
+        ->expectsOutput('Branch: release/0.23.2-123-324')
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');

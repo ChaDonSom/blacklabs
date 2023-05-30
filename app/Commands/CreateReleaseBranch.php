@@ -67,8 +67,8 @@ class CreateReleaseBranch extends Command {
             try {
                 $issueBranchNames = $this->runProcess("git branch -r | grep -v HEAD | sed -e 's/^[[:space:]]*//' | sed -e 's/origin\///' | grep {$issue}");
             } catch (\Exception $e) {
-                $this->warn("No branch found for issue {$issue}. Skipping.");
-                return null;
+                // For some reason, we don't get any output (maybe because it's piped?)
+                $issueBranchNames= '';
             }
             $issueBranchNamesArray = collect(explode("\n", $issueBranchNames))
                 ->filter(fn ($branchName) => !preg_match('/^release/', $branchName))
@@ -76,10 +76,18 @@ class CreateReleaseBranch extends Command {
                 ->filter() // Filter out empty strings
                 ->toArray();
             if (count($issueBranchNamesArray) === 0) {
-                $this->warn("No branch found for issue {$issue}. Skipping.");
-                return null;
+                $this->warn("No branch found for issue {$issue}. Please choose one, or skip this issue for now.");
+                // Let the user choose a branch to merge in
+                $issueBranchNames = $this->runProcess("git branch -r | grep -v HEAD | sed -e 's/^[[:space:]]*//' | sed -e 's/origin\///'");
+                $issueBranchesArray = collect(explode("\n", $issueBranchNames))
+                    ->filter(fn ($branchName) => !preg_match('/^release/', $branchName))
+                    ->filter() // Filter out empty strings
+                    ->push('Skip')
+                    ->toArray();
+                $issueBranchName = $this->choice("Choose a branch for issue {$issue}", $issueBranchesArray, "Skip");
+                if ($issueBranchName === "Skip") return null;
             }
-            $issueBranchName = $issueBranchNamesArray[0];
+            $issueBranchName ??= $issueBranchNamesArray[0];
             if (count($issueBranchNamesArray) > 1) {
                 $issueBranchName = $this->choice(
                     "More than one branch found for issue {$issue}. Which one would you like to use?",

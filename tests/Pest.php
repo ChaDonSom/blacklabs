@@ -11,6 +11,9 @@
 |
 */
 
+use CzProject\GitPhp\Git;
+use Illuminate\Support\Str;
+
 uses(Tests\TestCase::class)->in('Feature');
 
 /*
@@ -43,3 +46,42 @@ function something(): void
 {
     // ..
 }
+
+uses()->group('dummy-git-repo')->beforeEach(function () {
+    $this->git = app()->make(Git::class);
+    // Force remove the directory
+    exec('rm -rf /tmp/test-repo');
+    exec('rm -rf /tmp/test-repo-origin');
+    $this->repo = $this->git->init('/tmp/test-repo-origin');
+    chdir('/tmp/test-repo-origin');
+    touch('./README.md');
+    $this->repo->addAllChanges();
+    $this->repo->commit('Initial commit');
+    $this->repo->createBranch('forge-production', true);
+    $this->repo->createBranch('dev', true);
+    file_put_contents('./README.md', 'dev');
+    $this->repo->addAllChanges();
+    $this->repo->commit('Initial dev commit');
+    // Create two branches
+    $this->branchOneName = '123-' . Str::kebab(collect(fake()->words())->join('-'));
+    $this->repo->createBranch($this->branchOneName, true);
+    touch('./README-123.md');
+    $this->repo->addAllChanges();
+    $this->repo->commit('123 commit');
+    $this->repo->checkout('dev');
+    $this->branchTwoName = '456-' . Str::kebab(collect(fake()->words())->join('-'));
+    $this->repo->createBranch($this->branchTwoName, true);
+    touch('./README-456.md');
+    $this->repo->addAllChanges();
+    $this->repo->commit('456 commit');
+    $this->repo->checkout('master');
+
+    $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
+    $this->repo->checkout($this->branchOneName);
+    $this->repo->checkout($this->branchTwoName);
+    $this->repo->checkout('dev');
+    chdir('/tmp/test-repo');
+})->afterEach(function () {
+    exec('rm -rf /tmp/test-repo');
+    exec('rm -rf /tmp/test-repo-origin');
+})->in('Feature');
