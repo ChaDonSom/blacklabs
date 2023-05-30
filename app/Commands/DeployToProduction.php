@@ -30,6 +30,13 @@ class DeployToProduction extends Command
     public function handle()
     {
         $production = 'forge-production';
+        $this->warn("[WARNING] Only run this command if you know what you're doing.");
+        $inputName = $this->ask("Please type the name of the production branch to continue.");
+        if ($inputName !== $production) {
+            $this->error("You didn't type the name of the production branch correctly. Aborting.");
+            return;
+        }
+        
         $branch = $this->argument('branch');
         if (!$branch) {
             $branchesToChooseFrom = explode("\n", $this->runProcess('git branch --list "release/*" --format="%(refname:short)"'));
