@@ -48,9 +48,15 @@ class CreateReleaseBranch extends Command {
             $this->runProcess("git checkout -b {$branchName}");
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'already exists')) {
-                $this->error("Branch {$branchName} already exists. Please delete it and try again.");
+                $shouldDeleteIt = $this->confirm("Branch {$branchName} already exists. Should we delete it?", true);
+                if ($shouldDeleteIt) {
+                    $this->runProcess("git branch -D {$branchName}");
+                    $this->runProcess("git checkout -b {$branchName}");
+                } else {
+                    $this->error("Branch {$branchName} already exists. Please delete it or choose a different version.");
+                    return;
+                }
             }
-            return;
         }
 
         $this->info("Pulling issue branches into release branch.");

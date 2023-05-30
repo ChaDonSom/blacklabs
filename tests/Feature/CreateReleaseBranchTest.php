@@ -98,3 +98,24 @@ it('asks to continue when hitting merge conflicts', function () {
         ->expectsConfirmation('Ready to continue?', 'no')
         ->run();
 })->group('dummy-git-repo');
+
+it('can delete the branch if instructed to', function () {
+    $this->repo->createBranch('release/0.23.2-123-456');
+
+    $this->artisan('devops:create-release-branch 0.23.2 123,456')
+        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Creating release branch.')
+        ->expectsQuestion('Branch release/0.23.2-123-456 already exists. Should we delete it?', 'yes')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Merging issue 123 into release branch.')
+        ->expectsOutput('Merging issue 456 into release branch.')
+        ->expectsOutput('Pushing release branch to origin.')
+        ->expectsOutput('Creating release PR.')
+        ->expectsOutput('Creating release tag.')
+        ->expectsOutput('Done.')
+        ->expectsOutput('Branch: release/0.23.2-123-456')
+        ->assertExitCode(0)
+        ->run();
+})->group('dummy-git-repo');
