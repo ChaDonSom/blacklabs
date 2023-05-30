@@ -65,6 +65,19 @@ This command pings Forge (if you haven't given the app a Forge API token yet, do
 3. Then, it pings Forge to update that site's branch to the branch you chose.
 4. Then, it pings Forge again to initiate deployment for that site.
 
+### Deploy to production
+
+```sh
+blacklabs devops:deploy-to-production
+```
+
+1. It will warn you, and you have to type `forge-production` to make it go through.
+2. Then, it will ask you which branch to deploy, if you didn't provide the branch as the first argument.
+3. Then, it checks out `forge-production`, and merges your chosen branch in.
+4. Then, it pushes `forge-production`.
+5. Then, it checks out `dev` and merges `forge-production` into it.
+6. Then, it pushes `dev`.
+
 ## Contributing
 
 ### Deploy process
