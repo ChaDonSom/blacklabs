@@ -38,6 +38,7 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
 
 1. First, it checks out the `dev` branch and pulls it, to make sure it's up to date.
 2. Then, it makes a new branch from `dev` like `release/0.14.0.1-1001-1002-1003-884-732-1234`
+    1. If it finds an existing branch by that name, it will ask you if you want to delete it and remake it. If you respond affirmative, it will do so, if not, it will exit.
 3. Then, it goes through each issue number provided and tries to find the branch for it.
     1. If it can't find a branch with that issue number in it, it will skip that issue for you to manually merge it in later.
     2. If it finds more than one branch with that issue number in it, it will ask you which one to use.
