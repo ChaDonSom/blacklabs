@@ -44,7 +44,7 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
     2. If it finds more than one branch with that issue number in it, it will ask you which one to use.
     3. Then, having found the branch to merge, it merges it from `origin`.
 
-        > :spiral_notepad: Note
+        > **Note**
         >
         > This means each issue's branch needs to be pushed to origin beforehand.
     4. If it runs into a merge conflict, it will pause and ask you to resolve the merge manually. After resolving it, you can tell it to continue.

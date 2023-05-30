@@ -89,9 +89,9 @@ class UpdateSiteBranchAndDeploy extends Command {
         $this->info("Updating site {$chosenSite->name} to branch {$chosenSite->repository_branch}...");
         $this->client->put(
             'https://forge.laravel.com/api/v1/servers/' . $chosenSite->server_id . '/sites/' . $chosenSite->id . '/git',
-            ['json' => [
+            [
                 'branch' => $chosenSite->repository_branch
-            ]]
+            ]
         );
 
         // Deploy it!
