@@ -88,17 +88,6 @@ class Deploy extends Command
         $this->info('Done.');
     }
 
-    /**
-     * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
-     */
-    public function schedule(Schedule $schedule): void
-    {
-        // $schedule->command(static::class)->everyMinute();
-    }
-
     public function runProcess($command) {
         $result = Process::run($command);
         if (!$result->successful()) {
