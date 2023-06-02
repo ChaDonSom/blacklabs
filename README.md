@@ -6,6 +6,20 @@
 
 The Black Labs CLI, for our work.
 
+## Requirements
+
+1. You must have `git` istalled on your machine
+
+    ```sh
+    sudo apt install git-all
+    ```
+
+2. You must have `gh` installed for the `devops:create-release-branch` command (it makes a PR for that branch)
+
+    See [the `gh` install instructions for Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
+
+3. For the forge commands, you'll need to run `blacklabs app:store-forge-api-token <token>` first. It will be saved to disk, so you won't need to run it again (until your token expires).
+
 ## Install
 
 ```sh
@@ -52,13 +66,25 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
 5. Then, it creates a PR for the release with each issue listed in its description.
 6. Then, it adds a tag as well for that version (and pushes it).
 
+### Show site branches
+
+```sh
+blacklabs devops:show-site-branches
+```
+
+This command pings Forge for our servers with the 'console' tag, then displays all their sites along with the git branch they're currently assigned to.
+
+This is mainly helpful to get a quick glance while it's a little cumbersome to click through Forge to see it.
+
 ### Update site branch and deploy
 
 ```sh
 blacklabs devops:update-site-branch-and-deploy
 ```
 
-This command pings Forge (if you haven't given the app a Forge API token yet, do that first: `blacklabs app:store-forge-api-token <token>`).
+> **Note**
+>
+> This command pings Forge (if you haven't given the app a Forge API token yet, do that first: `blacklabs app:store-forge-api-token <token>`).
 
 1. First, it asks you which site to deploy to, out of the list of sites from Forge, filtered by sites that have the 'console' tag.
 2. Then, it asks you which branch to deploy. For the options here, it uses `git branch -r` (`-r` for 'remotes', showing only the branches that are pushed to origin).
