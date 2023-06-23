@@ -1,34 +1,15 @@
 <?php
 
-use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Str;
 
-it('merges issue branches and increments the tag', function () {
-    // Add some tags to the repository
-    exec("git tag v1.0.0");
-    exec("git tag v1.1.0");
-    
-    // Create a new release branch and some issue branches
-    $releaseBranch = 'release-1.0';
-    $issueBranches = ['issue-1', 'issue-2'];
-    exec("git checkout -b $releaseBranch");
-    foreach ($issueBranches as $issueBranch) {
-        exec("git checkout -b $issueBranch");
-        exec("touch $issueBranch.txt");
-        exec("git add $issueBranch.txt");
-        exec("git commit -m 'Add $issueBranch.txt'");
-        exec("git push origin $issueBranch");
-    }
-
-    // Run the command
-    Artisan::call('merge-and-increment-tag', [
-        'release-branch' => $releaseBranch,
-        'issue-branches' => $issueBranches,
-    ]);
-
-    // Assert that the release branch and the new tag were pushed to the remote repository
-    exec("git fetch origin $releaseBranch");
-    exec("git fetch --tags");
-    $output = exec("git tag --list $releaseBranch*");
-    expect($output)->toContain("$releaseBranch");
-    expect($output)->toContain("$releaseBranch.1");
+it('merges issue branches and increments the tag in a dummy git repo', function () {
+    $this->artisan('create-release-branch 0.23.2 123,456');
+    $branchTwoNameLimited = Str::limit($this->branchTwoName, 20, '...');
+    $this->artisan('merge-and-increment-tag release/0.23.2-123-456 456')
+        ->expectsOutput('Finding branch for issue 456...')
+        ->expectsOutput('Merging ' . $branchTwoNameLimited . '...')
+        ->expectsOutput('Incrementing the tag...')
+        ->expectsOutput('New tag: 0.23.2.1')
+        ->expectsOutput('Pushing the branch and the tag...')
+        ->expectsOutput('Done!');
 })->group('dummy-git-repo');

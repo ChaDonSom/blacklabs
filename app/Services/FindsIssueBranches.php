@@ -3,7 +3,13 @@
 namespace App\Services;
 
 trait FindsIssueBranches {
-    public function findIssueBranches(array $issuesArray) {
+    use RunsProcesses;
+    
+    /**
+     * Find the branch names for the given issues.
+     * @param array $issuesArray An array of issue numbers
+     */
+    public function findIssueBranches(array $issuesArray): array {
         return collect($issuesArray)->map(function ($issue) {
             $this->info("Finding branch for issue {$issue}...");
             // Get the branch name for the issue from the issue number, using git

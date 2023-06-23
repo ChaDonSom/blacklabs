@@ -2,16 +2,19 @@
 
 namespace App\Services;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 trait MergesBranches {
-    public function mergeBranches(array $branches, string $targetBranch) {
+    /**
+     * Merge the given branches into the current branch.
+     */
+    public function mergeBranches(array $branches) {
         foreach ($branches as $branchName) {
             // limit the branch name to keep the output clean. if the string is longer than 20 characters, it will 
             // be truncated and an ellipsis will be added.
             $branchNameLimited = Str::limit($branchName, 20, '...');
-            $targetBranchNameLimited = Str::limit($targetBranch, 20, '...');
-            $this->info("Merging {$branchNameLimited} into {$targetBranchNameLimited}...");
+            $this->info("Merging {$branchNameLimited}...");
             try {
                 $this->runProcess("git merge origin/{$branchName}");
             } catch (\Exception $e) {

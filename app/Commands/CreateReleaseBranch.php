@@ -68,7 +68,7 @@ class CreateReleaseBranch extends Command {
         $issuesArray = explode(',', $issues);
         $issueBranches = $this->findIssueBranches($issuesArray);
 
-        $this->mergeBranches($issueBranches, $branchName);
+        $this->mergeBranches($issueBranches);
 
         $this->info("Pushing release branch to origin.");
         $this->runProcess("git push origin $branchName");
