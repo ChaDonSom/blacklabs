@@ -27,8 +27,8 @@ it('works in a dummy git repo', function () {
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
         ->expectsOutput('Pulling issue branches into release branch.')
-        ->expectsOutput('Merging issue 123 into release branch.')
-        ->expectsOutput('Merging issue 456 into release branch.')
+        ->expectsOutput('Finding branch for issue 123...')
+        ->expectsOutput('Finding branch for issue 456...')
         ->expectsOutput('Pushing release branch to origin.')
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Creating release tag.')
@@ -52,15 +52,16 @@ it('asks to continue when hitting merge conflicts', function () {
     $originRepo->checkout('dev');
     chdir('/tmp/test-repo');
 
+    $limitedBranchName = Str::limit($this->branchTwoName, 20, '...');
     $this->artisan('create-release-branch 0.23.2 123,456')
         ->expectsOutput('Creating release branch for version 0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
         ->expectsOutput('Pulling issue branches into release branch.')
-        ->expectsOutput('Merging issue 123 into release branch.')
-        ->expectsOutput('Merging issue 456 into release branch.')
-        ->expectsOutput('Merge conflict detected with issue 456. Please resolve manually, then continue when you\'ve committed the merge.')
+        ->expectsOutput('Finding branch for issue 123...')
+        ->expectsOutput('Finding branch for issue 456...')
+        ->expectsOutput('Merge conflict detected with branch ' . $limitedBranchName . '. Please resolve manually, then continue when you\'ve committed the merge.')
         ->expectsConfirmation('Ready to continue?', 'no')
         ->run();
 })->group('dummy-git-repo');
@@ -75,8 +76,8 @@ it('can delete the branch if instructed to', function () {
         ->expectsOutput('Creating release branch.')
         ->expectsQuestion('Branch release/0.23.2-123-456 already exists. Should we delete it?', 'yes')
         ->expectsOutput('Pulling issue branches into release branch.')
-        ->expectsOutput('Merging issue 123 into release branch.')
-        ->expectsOutput('Merging issue 456 into release branch.')
+        ->expectsOutput('Finding branch for issue 123...')
+        ->expectsOutput('Finding branch for issue 456...')
         ->expectsOutput('Pushing release branch to origin.')
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Creating release tag.')
@@ -93,7 +94,7 @@ it('can skip missing issue branches', function() {
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
         ->expectsOutput('Pulling issue branches into release branch.')
-        ->expectsOutput('Merging issue 123 into release branch.')
+        ->expectsOutput('Finding branch for issue 123...')
         ->expectsOutput('No branch found for issue 324. Please choose one, or skip this issue for now.')
         ->expectsQuestion('Choose a branch for issue 324', 'Skip')
         ->run();
@@ -113,8 +114,8 @@ it('can use provided missing issue branches', function () {
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
         ->expectsOutput('Pulling issue branches into release branch.')
-        ->expectsOutput('Merging issue 123 into release branch.')
-        ->expectsOutput('Merging issue 324 into release branch.')
+        ->expectsOutput('Finding branch for issue 123...')
+        ->expectsOutput('Finding branch for issue 324...')
         ->expectsOutput('No branch found for issue 324. Please choose one, or skip this issue for now.')
         ->expectsQuestion('Choose a branch for issue 324', $this->branchThreeName)
         ->expectsOutput('Pushing release branch to origin.')
