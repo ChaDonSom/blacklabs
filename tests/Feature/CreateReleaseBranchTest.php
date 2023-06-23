@@ -6,7 +6,7 @@ use Illuminate\Support\Str;
 
 it('exits without a version or issues', function () {
     try {
-        $this->artisan('devops:create-release-branch');
+        $this->artisan('create-release-branch');
     } catch (\Exception $e) {
         expect($e->getMessage())->toContain('Not enough arguments (missing: "version, issues")');
     }
@@ -14,14 +14,14 @@ it('exits without a version or issues', function () {
 
 it('exits with a version but no issues', function () {
     try {
-        $this->artisan('devops:create-release-branch 0.23.2');
+        $this->artisan('create-release-branch 0.23.2');
     } catch (\Exception $e) {
         expect($e->getMessage())->toContain('Not enough arguments (missing: "issues")');
     }
 });
 
 it('works in a dummy git repo', function () {
-    $this->artisan('devops:create-release-branch 0.23.2 123,456')
+    $this->artisan('create-release-branch 0.23.2 123,456')
         ->expectsOutput('Creating release branch for version 0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
@@ -52,7 +52,7 @@ it('asks to continue when hitting merge conflicts', function () {
     $originRepo->checkout('dev');
     chdir('/tmp/test-repo');
 
-    $this->artisan('devops:create-release-branch 0.23.2 123,456')
+    $this->artisan('create-release-branch 0.23.2 123,456')
         ->expectsOutput('Creating release branch for version 0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
@@ -68,7 +68,7 @@ it('asks to continue when hitting merge conflicts', function () {
 it('can delete the branch if instructed to', function () {
     $this->repo->createBranch('release/0.23.2-123-456');
 
-    $this->artisan('devops:create-release-branch 0.23.2 123,456')
+    $this->artisan('create-release-branch 0.23.2 123,456')
         ->expectsOutput('Creating release branch for version 0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
@@ -87,7 +87,7 @@ it('can delete the branch if instructed to', function () {
 })->group('dummy-git-repo');
 
 it('can skip missing issue branches', function() {
-    $this->artisan('devops:create-release-branch 0.23.2 123,324')
+    $this->artisan('create-release-branch 0.23.2 123,324')
         ->expectsOutput('Creating release branch for version 0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
@@ -107,7 +107,7 @@ it('can use provided missing issue branches', function () {
     $this->repo->commit('324 commit');
     exec('git push --set-upstream origin ' . $this->branchThreeName);
 
-    $this->artisan('devops:create-release-branch 0.23.2 123,324')
+    $this->artisan('create-release-branch 0.23.2 123,324')
         ->expectsOutput('Creating release branch for version 0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')

@@ -14,7 +14,7 @@ class CreateReleaseBranch extends Command {
      *
      * @var string
      */
-    protected $signature = 'devops:create-release-branch
+    protected $signature = 'create-release-branch
                             {version : The version number for the release (required)}
                             {issues : The issues to pull into the release branch (required, comma-separated)}';
 

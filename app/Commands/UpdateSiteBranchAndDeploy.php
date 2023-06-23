@@ -15,7 +15,7 @@ class UpdateSiteBranchAndDeploy extends Command {
      *
      * @var string
      */
-    protected $signature = 'devops:update-site-branch-and-deploy {site?} {branch?}';
+    protected $signature = 'update-site-branch-and-deploy {site?} {branch?}';
 
     /**
      * The console command description.

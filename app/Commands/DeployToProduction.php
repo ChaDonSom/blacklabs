@@ -13,7 +13,7 @@ class DeployToProduction extends Command
      *
      * @var string
      */
-    protected $signature = 'devops:deploy-to-production {branch? : The branch to deploy (will ask if not provided)}';
+    protected $signature = 'deploy-to-production {branch? : The branch to deploy (will ask if not provided)}';
 
     /**
      * The description of the command.

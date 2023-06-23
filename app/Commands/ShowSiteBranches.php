@@ -7,14 +7,14 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use LaravelZero\Framework\Commands\Command;
 
-class DevopsShowSiteBranches extends Command
+class ShowSiteBranches extends Command
 {
     /**
      * The signature of the command.
      *
      * @var string
      */
-    protected $signature = 'devops:show-site-branches';
+    protected $signature = 'show-site-branches';
 
     /**
      * The description of the command.
