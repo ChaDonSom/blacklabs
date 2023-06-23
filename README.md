@@ -110,7 +110,7 @@ blacklabs devops:deploy-to-production
 blacklabs merge-and-increment-tag release/0.14.0.1-1002-1003-1120-843-034 843,034
 ```
 
-This would just help with merging in the issue branch, then incrementing the tag number. The Forge server handles auto-deploy on its own for this workflow. So, this command would only:
+This just helps with merging in the issue branch, then incrementing the tag number. The Forge server handles auto-deploy on its own for this workflow. So, this command would only:
 
 1. Merge the specified issue branches in
 2. Increment the tag's deploy number (from the one found in the specified branch)
@@ -119,19 +119,24 @@ This would just help with merging in the issue branch, then incrementing the tag
     3. increment the deploy number of it
 3. Push the branch and the tags
 
-### Some new command ideas
+### Add or Remove Issues from Site
 
-#### Add issue to site (not branch - it does it by creating new release branch)
+```sh
+blacklabs site add-issues blacklabtesting.com 388,3843
+```
 
-#### Remove issue from site (not branch - it does it by creating new release branch)
+1. It grabs the branch currently deployed to that site.
+2. It gets the tag from the branch and increments the `deploy` number of it (the 4th number, for example:
+    
+    ```
+    0.13.3.1
+           ^
+    ```
 
-It should ask for the version number and display the current branch on that site (maybe the current branches on all sites).
-
-`add` or `remove`
-
-comma-separated list of issues to add or remove
-
-gets the list of issues currently on that site from the branch after the version number
+    ).
+3. It comes up with a new list of issues based on the existing list in the branch name, and the ones you listed to add or remove.
+4. It creates a new release branch (see [Create Release Branch](#create-release-branch))
+5. It updates the given site's branch and triggers a deployment on it (see [Update Site Branch and Deploy](#update-site-branch-and-deploy))
 
 ## Contributing
 

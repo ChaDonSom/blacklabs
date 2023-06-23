@@ -2,14 +2,15 @@
 
 namespace App\Commands;
 
-use Illuminate\Console\Scheduling\Schedule;
-use Illuminate\Support\Facades\Http;
-use Illuminate\Http\Client\PendingRequest;
+use App\Services\GetsConsoleSites;
+use App\Services\UsesForgeHttp;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Storage;
 use LaravelZero\Framework\Commands\Command;
 
 class UpdateSiteBranchAndDeploy extends Command {
+    use GetsConsoleSites;
+    use UsesForgeHttp;
+
     /**
      * The name and signature of the console command.
      *
@@ -33,26 +34,10 @@ class UpdateSiteBranchAndDeploy extends Command {
         $site = $this->argument('site');
         $branch = $this->argument('branch');
 
-        $token = Storage::get('forge-api-token.txt');
-        if (!$token) {
-            $this->error('No API token found.');
-            $this->warn('Please run `app:store-forge-api-token` with your Forge API Token first.');
-            return;
-        }
-
-        $this->client = Http::withToken($token)->acceptJson()->contentType('application/json');
+        $this->client = $this->getForgeHttpRequest();
 
         // Get the site from forge API by getting servers, then sites, then filtering by site name
-        $servers = $this->client->get('https://forge.laravel.com/api/v1/servers')->getBody()->getContents();
-        
-        $servers = collect(json_decode($servers)->servers)
-            ->filter(fn ($server) => collect($server->tags)->map(fn ($tag) => $tag->name)->contains('console'));
-        
-        $sites = collect($servers)->flatMap(function ($server) {
-            $result = $this->client->get('https://forge.laravel.com/api/v1/servers/' . $server->id . '/sites')
-                ->getBody()->getContents();
-            return collect(json_decode($result)->sites);
-        });
+        $sites = $this->getConsoleSites($this->client);
         
         // Ask for the site and provide options from forge's API
         $chosenSite = $site ?? $this->anticipate(

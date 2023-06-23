@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Services\FindsIssueBranches;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
+use App\Services\Tags;
 use CzProject\GitPhp\Git;
 use Illuminate\Support\Str;
 use Illuminate\Console\Scheduling\Schedule;
@@ -15,6 +16,7 @@ class RemergeReleaseBranch extends Command
     use RunsProcesses;
     use FindsIssueBranches;
     use MergesBranches;
+    use Tags;
 
     protected $signature = 'merge-and-increment-tag
                             {release-branch : The release branch to merge new changes into (required)}
@@ -34,19 +36,11 @@ class RemergeReleaseBranch extends Command
         // Increment the tag's deploy number
         // Get the tag from the release branch name
         $this->info("Incrementing the tag...");
-        $latestTag = Str::of($releaseBranch)->after('release/')->before('-'); // 0.15 || 0.15.0 || 0.15.0.4
+        $latestTag = $this->getTagFromBranch($releaseBranch); // v0.15 || v0.15.0 || v0.15.0.4
 
-        // Find the latest git tag that matches this tag up to the 3rd number
-        $hotfixLevelTag = implode('.', array_slice(explode('.', $latestTag), 0, 3));
-        $tags = $this->runProcess('git tag --list ' . $hotfixLevelTag . '*');
-        $tags = explode("\n", $tags);
-        $tags = array_filter($tags);
-        $latestTag = end($tags) ?: $latestTag; // sets to the latest tag if there are no tags that match
+        $latestTag = $this->getGitTagFromBranchTag($latestTag);
 
-        $tagParts = explode('.', $latestTag);
-        $tagParts[2] = ($tagParts[2] ?? 0);
-        $tagParts[3] = ($tagParts[3] ?? 0) + 1;
-        $newTag = implode('.', $tagParts);
+        $newTag = $this->incrementTag($latestTag);
         $this->info("New tag: {$newTag}");
 
         // Create the new tag
