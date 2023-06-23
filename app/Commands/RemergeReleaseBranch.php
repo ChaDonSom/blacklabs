@@ -35,6 +35,14 @@ class RemergeReleaseBranch extends Command
         // Get the tag from the release branch name
         $this->info("Incrementing the tag...");
         $latestTag = Str::of($releaseBranch)->after('release/')->before('-'); // 0.15 || 0.15.0 || 0.15.0.4
+
+        // Find the latest git tag that matches this tag up to the 3rd number
+        $hotfixLevelTag = implode('.', array_slice(explode('.', $latestTag), 0, 3));
+        $tags = $this->runProcess('git tag --list ' . $hotfixLevelTag . '*');
+        $tags = explode("\n", $tags);
+        $tags = array_filter($tags);
+        $latestTag = end($tags) ?: $latestTag; // sets to the latest tag if there are no tags that match
+
         $tagParts = explode('.', $latestTag);
         $tagParts[2] = ($tagParts[2] ?? 0);
         $tagParts[3] = ($tagParts[3] ?? 0) + 1;

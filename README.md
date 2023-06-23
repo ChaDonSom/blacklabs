@@ -104,7 +104,22 @@ blacklabs devops:deploy-to-production
 5. Then, it checks out `dev` and merges `forge-production` into it.
 6. Then, it pushes `dev`.
 
-### Some new command ideas:
+### Remerge release branch
+
+```sh
+blacklabs merge-and-increment-tag release/0.14.0.1-1002-1003-1120-843-034 843,034
+```
+
+This would just help with merging in the issue branch, then incrementing the tag number. The Forge server handles auto-deploy on its own for this workflow. So, this command would only:
+
+1. Merge the specified issue branches in
+2. Increment the tag's deploy number (from the one found in the specified branch)
+    1. find the tag from the branch
+    2. find the latest tag that matches that tag up to the hotfix number
+    3. increment the deploy number of it
+3. Push the branch and the tags
+
+### Some new command ideas
 
 #### Add issue to site (not branch - it does it by creating new release branch)
 
@@ -117,19 +132,6 @@ It should ask for the version number and display the current branch on that site
 comma-separated list of issues to add or remove
 
 gets the list of issues currently on that site from the branch after the version number
-
-1. 
-
-#### Re-merge a specific release branch and increment the tag for that release
-
-This would just help with merging in the issue branch, then incrementing the tag number. The Forge server handles auto-deploy on its own for this workflow. So, this command would only:
-
-1. Merge the specified issue branches in
-2. Increment the tag's deploy number (from the one found in the specified branch)
-    1. find the tag from the branch
-    2. find the latest tag that matches that tag up to the hotfix number
-    3. increment the deploy number of it
-3. Push the branch and the tags
 
 ## Contributing
 
