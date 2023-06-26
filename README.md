@@ -14,7 +14,7 @@ The Black Labs CLI, for our work.
     sudo apt install git-all
     ```
 
-2. You must have `gh` installed for the `devops:create-release-branch` command (it makes a PR for that branch)
+2. You must have `gh` installed for the `create-release-branch` command (it makes a PR for that branch)
 
     See [the `gh` install instructions for Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
 
@@ -45,7 +45,7 @@ This command has been lately throwing an error about `zlib` or something. Howeve
 #### Create release branch
 
 ```sh
-blacklabs devops:create-release-branch 0.14.0.1 1001,1002,1003,884,732,1234
+blacklabs create-release-branch 0.14.0.1 1001,1002,1003,884,732,1234
 ```
 
 This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-1234` and merge each of those issues into it.
@@ -69,7 +69,7 @@ This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-12
 ### Show site branches
 
 ```sh
-blacklabs devops:show-site-branches
+blacklabs show-site-branches
 ```
 
 This command pings Forge for our servers with the 'console' tag, then displays all their sites along with the git branch they're currently assigned to.
@@ -79,7 +79,7 @@ This is mainly helpful to get a quick glance while it's a little cumbersome to c
 ### Update site branch and deploy
 
 ```sh
-blacklabs devops:update-site-branch-and-deploy
+blacklabs update-site-branch-and-deploy
 ```
 
 > **Note**
@@ -94,7 +94,7 @@ blacklabs devops:update-site-branch-and-deploy
 ### Deploy to production
 
 ```sh
-blacklabs devops:deploy-to-production
+blacklabs deploy-to-production
 ```
 
 1. It will warn you, and you have to type `forge-production` to make it go through.
