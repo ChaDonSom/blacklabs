@@ -22,6 +22,8 @@ The Black Labs CLI, for our work.
 
 ## Install
 
+Make sure composer is in your system PATH, and has the folders it needs for global installs: [Composer Introduction, Globaly](https://getcomposer.org/doc/00-intro.md#globally)
+
 ```sh
 composer global require blacklabs/blacklabs
 ```
