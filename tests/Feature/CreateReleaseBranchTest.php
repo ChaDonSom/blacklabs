@@ -126,3 +126,26 @@ it('can use provided missing issue branches', function () {
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
+
+it('doesnt add vs from the tag', function () {
+    $this->artisan('create-release-branch v0.23.2 123,456')
+        ->expectsOutput('Creating release branch for version v0.23.2.')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Creating release branch.')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Finding branch for issue 123...')
+        ->expectsOutput('Finding branch for issue 456...')
+        ->expectsOutput('Pushing release branch to origin.')
+        ->expectsOutput('Creating release PR.')
+        ->expectsOutput('Creating release tag.')
+        ->expectsOutput('Done.')
+        ->expectsOutput('Branch: release/v0.23.2-123-456')
+        ->assertExitCode(0)
+        ->run();
+    // Then also check the tag it created and make sure the tag has only one 'v'
+    $tags = $this->runProcess('git tag --list v0.23.2*');
+    $tags = explode("\n", $tags);
+    $tags = array_filter($tags);
+    expect(end($tags))->toBe('v0.23.2');
+})->group('dummy-git-repo');
