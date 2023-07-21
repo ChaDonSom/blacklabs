@@ -93,6 +93,8 @@ class CreateReleaseBranch extends Command {
 
         // Create and push a tag for the release
         $this->info("Creating release tag.");
+        // Remove any 'v' from the version number
+        $version = str_replace('v', '', $version);
         $this->runProcess("git tag -a v{$version} -m 'Release {$version}'");
         $this->runProcess("git push origin v{$version}");
 
