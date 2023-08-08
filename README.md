@@ -156,3 +156,7 @@ This command does:
 4. Commit it
 5. Create a tag for that version
 6. Push tags (includes the master branch)
+
+### Features I want to add
+
+1. A command to switch branches of Console, but reverse any migrations unique to the current branch first. Then, run any migrations that the new branch brings in. There could also be a version of this command for the `composer install` and `npm install`.
