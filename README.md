@@ -160,3 +160,5 @@ This command does:
 ### Features I want to add
 
 1. A command to switch branches of Console, but reverse any migrations unique to the current branch first. Then, run any migrations that the new branch brings in. There could also be a version of this command for the `composer install` and `npm install`.
+
+2. Laravel Prompts: this would make the CLI interactions prettier and nicer to work with, e.g. selecting 'yes' with the arrow keys rather than typing 'yes', when hitting the merge conflict in creating a release branch.
