@@ -4,6 +4,7 @@ namespace App\Services;
 
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use function Laravel\Prompts\confirm;
 
 trait MergesBranches {
     /**
@@ -22,7 +23,7 @@ trait MergesBranches {
                 if (str_contains($e->getMessage(), 'merge failed')) {
                     $this->warn("Merge conflict detected with branch {$branchNameLimited}."
                     . " Please resolve manually, then continue when you've committed the merge.");
-                    $this->confirm("Ready to continue?");
+                    confirm("Ready to continue?");
                 } else {
                     Log::error($e->getMessage());
                     return $this->error($e->getMessage());

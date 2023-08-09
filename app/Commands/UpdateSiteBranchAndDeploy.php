@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Services\ChoosesBranch;
 use App\Services\GetsConsoleSites;
 use App\Services\UsesForgeHttp;
 use Illuminate\Support\Facades\Log;
@@ -10,6 +11,7 @@ use LaravelZero\Framework\Commands\Command;
 class UpdateSiteBranchAndDeploy extends Command {
     use GetsConsoleSites;
     use UsesForgeHttp;
+    use ChoosesBranch;
 
     /**
      * The name and signature of the console command.
@@ -64,21 +66,9 @@ class UpdateSiteBranchAndDeploy extends Command {
 
         $this->info("Updating site {$chosenSite->id}...");
 
-        // Get the branches using git in the current folder
-        $branches = collect(explode("\n", shell_exec('git branch -r')))
-            ->map(fn ($branch) => trim(str_replace('origin/', '', $branch)))
-            ->filter(fn ($branch) => $branch != 'HEAD' && $branch != 'master')
-            ->values();
-
-        Log::debug($branches);
-
-        $chosenSite->repository_branch = $branch ?? $this->anticipate(
-            'What branch would you like to deploy?',
-            function (string $input) use ($branches) {
-                return $branches
-                    ->filter(fn ($branch) => strpos($branch, $input) !== false)
-                    ->toArray();
-            }
+        $chosenSite->repository_branch = $this->chooseBranch(
+            overrideBranch: $branch,
+            message: "Which branch would you like to deploy?"
         );
 
         // Update the site using forge's API

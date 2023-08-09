@@ -140,6 +140,20 @@ blacklabs site add-issues blacklabtesting.com 388,3843
 4. It creates a new release branch (see [Create Release Branch](#create-release-branch))
 5. It updates the given site's branch and triggers a deployment on it (see [Update Site Branch and Deploy](#update-site-branch-and-deploy))
 
+### Checkout to a branch and handle the migrations
+
+```sh
+blacklabs checkout
+```
+
+1. It checks if any migrations were made in the current branch, and, if so, runs `migrate:rollback`.
+2. Then, it checks out to the new branch.
+3. Then it checks if any migrations were made in the new branch, and runs `migrate`.
+
+> **Warning**
+>
+> This command has a bug 🪲 currently, where it can't run migrations in multiple 'steps' (i.e. when you run your migrations using `--step`, or when you make a migration and run it, then make another and run it in a separate process).
+
 ## Contributing
 
 ### Deploy process

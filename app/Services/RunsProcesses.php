@@ -14,6 +14,6 @@ trait RunsProcesses {
                 throw new \Exception($result->errorOutput() ?: $result->output());
             }
         }
-        return $result->output();
+        return trim($result->output());
     }
 }
