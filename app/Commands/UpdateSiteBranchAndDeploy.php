@@ -8,6 +8,8 @@ use App\Services\UsesForgeHttp;
 use Illuminate\Support\Facades\Log;
 use LaravelZero\Framework\Commands\Command;
 
+use function Laravel\Prompts\search;
+
 class UpdateSiteBranchAndDeploy extends Command {
     use GetsConsoleSites;
     use UsesForgeHttp;
@@ -42,14 +44,15 @@ class UpdateSiteBranchAndDeploy extends Command {
         $sites = $this->getConsoleSites($this->client);
         
         // Ask for the site and provide options from forge's API
-        $chosenSite = $site ?? $this->anticipate(
-            'Which site would you like to update and deploy?',
-            function (string $input) use ($sites) {
+        $chosenSite = $site ?? search(
+            label: 'Which site would you like to update and deploy?',
+            options: function (string $input) use ($sites) {
                 return $sites
                     ->map(fn ($s) => $s->name)
-                    ->filter(fn ($name) => str_starts_with($name, $input))
+                    ->filter(fn ($name) => str_contains(strtolower($name), strtolower($input)))
                     ->toArray();
-            }
+            },
+            scroll: 10,
         );
 
         $chosenSite = $sites->firstWhere('name', $chosenSite);
