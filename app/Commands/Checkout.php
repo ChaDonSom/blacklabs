@@ -18,7 +18,7 @@ class Checkout extends Command
      *
      * @var string
      */
-    protected $signature = 'checkout {branch? : The branch to check out to} {--i|install : Install dependencies after checking out}';
+    protected $signature = 'checkout {branch? : The branch to check out to} {--i|install : Install composer and npm dependencies after checking out}';
 
     /**
      * The description of the command.
@@ -73,19 +73,6 @@ class Checkout extends Command
             return 1;
         }
 
-        // Run migrations in the new branch if there are any
-        $migrations = $this->getCurrentBranchMigrations($currentBranch);
-        if (count($migrations)) {
-            $this->info("\nRunning migrations in new branch...");
-            $this->checkFoundMigrationsAgainstPretend($migrations);
-            try {
-                $this->runProcess("php artisan migrate --force");
-            } catch (\Exception $e) {
-                $this->error("Error rolling back migrations in current branch: {$e->getMessage()}");
-                return 1;
-            }
-        }
-
         // Install dependencies if requested
         if ($this->option('install')) {
             $this->info("Installing dependencies...");
@@ -99,6 +86,19 @@ class Checkout extends Command
                 $this->runProcess("npm install");
             } catch (\Exception $e) {
                 $this->error("Error installing dependencies: {$e->getMessage()}");
+                return 1;
+            }
+        }
+
+        // Run migrations in the new branch if there are any
+        $migrations = $this->getCurrentBranchMigrations($currentBranch);
+        if (count($migrations)) {
+            $this->info("\nRunning migrations in new branch...");
+            $this->checkFoundMigrationsAgainstPretend($migrations);
+            try {
+                $this->runProcess("php artisan migrate --force");
+            } catch (\Exception $e) {
+                $this->error("Error rolling back migrations in current branch: {$e->getMessage()}");
                 return 1;
             }
         }
