@@ -6,7 +6,10 @@ use Illuminate\Support\Str;
 
 trait Tags {
     public function getTagFromBranch($branch): string {
-        return Str::of($branch)->after('release/')->before('-')->prepend('v'); // v0.15 || v0.15.0 || v0.15.0.4
+        $tag = Str::of($branch)->after('release/')->before('-');
+        // Only prepend 'v' if it doesn't already have it
+        if ($tag->startsWith('v')) return $tag;
+        return 'v' . $tag;
     }
 
     public function getGitTagFromBranchTag($branchTag): string {
