@@ -50,6 +50,7 @@ class UpdateSiteBranchAndDeploy extends Command {
                 return $sites
                     ->map(fn ($s) => $s->name)
                     ->filter(fn ($name) => str_contains(strtolower($name), strtolower($input)))
+                    ->keyBy(fn ($name) => $name)
                     ->toArray();
             },
             scroll: 10,
