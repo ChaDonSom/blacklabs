@@ -5,6 +5,7 @@ namespace App\Commands;
 use App\Services\FindsIssueBranches;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
+use App\Services\Tags;
 use LaravelZero\Framework\Commands\Command;
 use CzProject\GitPhp\Git;
 use Illuminate\Support\Facades\Log;
@@ -13,6 +14,7 @@ class CreateReleaseBranch extends Command {
     use FindsIssueBranches;
     use RunsProcesses;
     use MergesBranches;
+    use Tags;
 
     /**
      * The name and signature of the console command.
@@ -34,7 +36,7 @@ class CreateReleaseBranch extends Command {
      * Execute the console command.
      */
     public function handle(Git $git) {
-        $version = $this->argument('version');
+        $version = $this->getTagWithV($this->argument('version'));
         $issues = $this->argument('issues');
 
         $this->info("Creating release branch for version {$version}.");

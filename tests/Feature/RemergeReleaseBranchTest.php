@@ -5,7 +5,7 @@ use Illuminate\Support\Str;
 it('merges issue branches and increments the tag', function () {
     $this->artisan('create-release-branch 0.23.2 123,456');
     $branchTwoNameLimited = Str::limit($this->branchTwoName, 20, '...');
-    $this->artisan('merge-and-increment-tag release/0.23.2-123-456 456')
+    $this->artisan('merge-and-increment-tag release/v0.23.2-123-456 456')
         ->expectsOutput('Finding branch for issue 456...')
         ->expectsOutput('Merging ' . $branchTwoNameLimited . '...')
         ->expectsOutput('Incrementing the tag...')
@@ -18,7 +18,7 @@ it('uses git tag', function () {
     $this->repo->createTag('v0.23.2.5');
     $this->artisan('create-release-branch 0.23.2 123,456');
     $branchTwoNameLimited = Str::limit($this->branchTwoName, 20, '...');
-    $this->artisan('merge-and-increment-tag release/0.23.2-123-456 456')
+    $this->artisan('merge-and-increment-tag release/v0.23.2-123-456 456')
         ->expectsOutput('Finding branch for issue 456...')
         ->expectsOutput('Merging ' . $branchTwoNameLimited . '...')
         ->expectsOutput('Incrementing the tag...')

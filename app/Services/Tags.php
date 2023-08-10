@@ -7,9 +7,7 @@ use Illuminate\Support\Str;
 trait Tags {
     public function getTagFromBranch($branch): string {
         $tag = Str::of($branch)->after('release/')->before('-');
-        // Only prepend 'v' if it doesn't already have it
-        if ($tag->startsWith('v')) return $tag;
-        return 'v' . $tag;
+        return $this->getTagWithV($tag);
     }
 
     public function getGitTagFromBranchTag($branchTag): string {
@@ -35,5 +33,15 @@ trait Tags {
         for ($i = $part + 1; $i < 4; $i++) $tagParts[$i] = 0;
 
         return implode('.', $tagParts);
+    }
+
+    public function getTagWithV(string $tag): string {
+        if (Str::startsWith($tag, 'v')) return $tag;
+        return 'v' . $tag;
+    }
+
+    public function getTagWithoutV(string $tag): string {
+        if (Str::startsWith($tag, 'v')) return Str::after($tag, 'v');
+        return $tag;
     }
 }

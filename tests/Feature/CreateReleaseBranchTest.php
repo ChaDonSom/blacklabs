@@ -22,7 +22,7 @@ it('exits with a version but no issues', function () {
 
 it('works in a dummy git repo', function () {
     $this->artisan('create-release-branch 0.23.2 123,456')
-        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Creating release branch for version v0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
@@ -33,7 +33,7 @@ it('works in a dummy git repo', function () {
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Creating release tag.')
         ->expectsOutput('Done.')
-        ->expectsOutput('Branch: release/0.23.2-123-456')
+        ->expectsOutput('Branch: release/v0.23.2-123-456')
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
@@ -68,14 +68,14 @@ it('works in a dummy git repo', function () {
 // })->group('dummy-git-repo');
 
 it('can delete the branch if instructed to', function () {
-    $this->repo->createBranch('release/0.23.2-123-456');
+    $this->repo->createBranch('release/v0.23.2-123-456');
 
     $this->artisan('create-release-branch 0.23.2 123,456')
-        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Creating release branch for version v0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
-        ->expectsQuestion('Branch release/0.23.2-123-456 already exists. Should we delete it?', 'yes')
+        ->expectsQuestion('Branch release/v0.23.2-123-456 already exists. Should we delete it?', 'yes')
         ->expectsOutput('Pulling issue branches into release branch.')
         ->expectsOutput('Finding branch for issue 123...')
         ->expectsOutput('Finding branch for issue 456...')
@@ -83,14 +83,14 @@ it('can delete the branch if instructed to', function () {
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Creating release tag.')
         ->expectsOutput('Done.')
-        ->expectsOutput('Branch: release/0.23.2-123-456')
+        ->expectsOutput('Branch: release/v0.23.2-123-456')
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
 
 it('can skip missing issue branches', function() {
     $this->artisan('create-release-branch 0.23.2 123,324')
-        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Creating release branch for version v0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
@@ -110,7 +110,7 @@ it('can use provided missing issue branches', function () {
     exec('git push --set-upstream origin ' . $this->branchThreeName);
 
     $this->artisan('create-release-branch 0.23.2 123,324')
-        ->expectsOutput('Creating release branch for version 0.23.2.')
+        ->expectsOutput('Creating release branch for version v0.23.2.')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch.')
@@ -123,7 +123,7 @@ it('can use provided missing issue branches', function () {
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Creating release tag.')
         ->expectsOutput('Done.')
-        ->expectsOutput('Branch: release/0.23.2-123-324')
+        ->expectsOutput('Branch: release/v0.23.2-123-324')
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
