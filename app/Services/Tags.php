@@ -15,7 +15,13 @@ trait Tags {
         $tags = $this->runProcess('git tag --list ' . $hotfixLevelTag . '*');
         $tags = explode("\n", $tags);
         $tags = array_filter($tags);
-        return end($tags) ?: $branchTag; // sets to the branch tag if there are no tags that match
+        // Sort the tags so the highest deploy number is last
+        $tags = collect($tags)->sort(function ($a, $b) {
+            $a = explode('.', $a);
+            $b = explode('.', $b);
+            return $a[count($a) - 1] <=> $b[count($b) - 1];
+        });
+        return $tags->last() ?: $branchTag; // sets to the branch tag if there are no tags that match
     }
 
     public function incrementTag($tag, $part = 'deploy') {

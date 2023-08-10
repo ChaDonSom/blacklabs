@@ -36,9 +36,11 @@ class RemergeReleaseBranch extends Command
         // Increment the tag's deploy number
         // Get the tag from the release branch name
         $this->info("Incrementing the tag...");
-        $latestTag = $this->getTagFromBranch($releaseBranch); // v0.15 || v0.15.0 || v0.15.0.4
+        $tagFromBranch = $this->getTagFromBranch($releaseBranch); // v0.15 || v0.15.0 || v0.15.0.4
+        $this->info("Tag from branch: {$tagFromBranch}");
 
-        $latestTag = $this->getGitTagFromBranchTag($latestTag);
+        $latestTag = $this->getGitTagFromBranchTag($tagFromBranch);
+        $this->info("Latest tag: {$latestTag}");
 
         $newTag = $this->incrementTag($latestTag);
         $this->info("New tag: {$newTag}");
