@@ -6,6 +6,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 
 trait UsesForgeHttp {
+    protected $token;
+    
     public function getForgeHttpRequest() {
         $this->token ??= Storage::get('forge-api-token.txt');
         if (!$this->token) {

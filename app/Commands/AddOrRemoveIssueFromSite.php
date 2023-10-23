@@ -73,14 +73,15 @@ class AddOrRemoveIssueFromSite extends Command
 
         // Create new release branch
         $this->info('Creating new release branch...');
-        $stream = fopen("php://output", "w");
         $this->call('create-release-branch', [
             'level' => 'prerelease',
             'issues' => $issues->implode(','),
-        ], new StreamOutput($stream));
-        $newBranch = trim(stream_get_contents($stream));
+        ]);
+
+        $newBranch = $this->runProcess('git branch --show-current');
 
         // Update the site branch and deploy
+        Log::debug('New branch:' . $newBranch);
         $this->info('Updating the site branch and deploying...');
         $this->call('update-site-branch', [
             'site' => $site,

@@ -41,7 +41,7 @@ class RemergeReleaseBranch extends Command
         $newTag = $this->runProcess("git describe --tags --abbrev=0"); // v0.15.0-2
 
         $this->info("New tag: {$newTag}");
-        Log::info($newTag);
+        Log::debug("New tag: " . $newTag);
 
         // Push the branch and the tags
         $this->info("Pushing the branch and the tag...");

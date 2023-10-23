@@ -49,7 +49,7 @@ class CreateReleaseBranch extends Command {
         // Get the next version
         $version = $this->runProcess("npm version $level --no-git-tag-version");
 
-        Log::info("Version: {$version}");
+        Log::debug("Version: {$version}");
 
         // Toss out the changes to package.json
         $this->runProcess("git checkout package.json");
