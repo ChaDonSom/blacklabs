@@ -11,7 +11,7 @@ trait Tags {
     }
 
     public function getGitTagFromBranchTag($branchTag): string {
-        $hotfixLevelTag = implode('.', array_slice(explode('.', $branchTag), 0, 3)); // v0.15 || v0.15.2
+        $hotfixLevelTag = implode('.', array_slice(explode('.', $branchTag), 0, 3)); // v0.15 || v0.15.2 || v0.15.2-3
         $tags = $this->runProcess('git tag --list ' . $hotfixLevelTag . '*');
         $tags = explode("\n", $tags);
         $tags = array_filter($tags);
@@ -49,5 +49,23 @@ trait Tags {
     public function getTagWithoutV(string $tag): string {
         if (Str::startsWith($tag, 'v')) return Str::after($tag, 'v');
         return $tag;
+    }
+
+    public function getLatestTag(): string {
+        $tag = $this->runProcess('npm run env | grep npm_package_version | cut -d "=" -f 2');
+        return $tag;
+    }
+
+    /**
+     * Gets the NPM version type from the given tag. Returns 'major', 'minor', 'patch', or 'prerelease'.
+     * @param string $tag 
+     * @return string 
+     */
+    public function getVersionTypeFromTag(string $tag): string {
+        $tag = $this->getTagWithoutV($tag);
+        $tagParts = explode('.', $tag);
+        $tagParts[2] = explode('-', $tagParts[2]);
+        $tagParts[2] = $tagParts[2][0];
+
     }
 }

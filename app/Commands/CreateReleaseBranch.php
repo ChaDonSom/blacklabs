@@ -22,7 +22,7 @@ class CreateReleaseBranch extends Command {
      * @var string
      */
     protected $signature = 'create-release-branch
-                            {version : The version number for the release (required)}
+                            {level : The level of the release (major, minor, patch, prerelease) (required)}
                             {issues : The issues to pull into the release branch (required, comma-separated)}';
 
     /**
@@ -36,10 +36,8 @@ class CreateReleaseBranch extends Command {
      * Execute the console command.
      */
     public function handle(Git $git) {
-        $version = $this->getTagWithV($this->argument('version'));
+        $level = $this->argument('level');
         $issues = $this->argument('issues');
-
-        $this->info("Creating release branch for version {$version}.");
 
         $this->info("Checking out dev branch.");
         $repo = $git->open(getcwd());
@@ -48,9 +46,18 @@ class CreateReleaseBranch extends Command {
         $this->info("Pulling latest dev branch.");
         $repo->pull();
 
-        $this->info("Creating release branch.");
+        // Get the next version
+        $version = $this->runProcess("npm version $level --no-git-tag-version");
+
+        Log::info("Version: {$version}");
+
+        // Toss out the changes to package.json
+        $this->runProcess("git checkout package.json");
+
+        $this->info("Creating release branch for version {$version}.");
+
         $issuesFormattedForBranch = str_replace(',', '-', $issues);
-        $branchName = "release/{$version}-{$issuesFormattedForBranch}";
+        $branchName = "release/{$version}/{$issuesFormattedForBranch}";
         try {
             $this->runProcess("git checkout -b {$branchName}");
         } catch (\Exception $e) {
@@ -68,6 +75,7 @@ class CreateReleaseBranch extends Command {
 
         $this->info("Pulling issue branches into release branch.");
         $issuesArray = explode(',', $issues);
+        Log::debug("Issues array: " . print_r($issuesArray, true));
         $issueBranches = $this->findIssueBranches($issuesArray);
 
         $this->mergeBranches($issueBranches);

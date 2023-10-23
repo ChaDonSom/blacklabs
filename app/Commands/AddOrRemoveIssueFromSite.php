@@ -6,8 +6,10 @@ use App\Services\GetsConsoleSites;
 use App\Services\RunsProcesses;
 use App\Services\Tags;
 use App\Services\UsesForgeHttp;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use LaravelZero\Framework\Commands\Command;
+use Symfony\Component\Console\Output\StreamOutput;
 
 class AddOrRemoveIssueFromSite extends Command
 {
@@ -57,18 +59,10 @@ class AddOrRemoveIssueFromSite extends Command
         }
         $siteBranch = $chosenSite->repository_branch;
 
-        // Get tag from branch
-        $this->info('Getting tag from branch...');
-        $latestTag = $this->getTagFromBranch($siteBranch);
-
-        // Get latest git tag that matches and increment it
-        $this->info('Getting latest git tag that matches and incrementing it...');
-        $gitTag = $this->getGitTagFromBranchTag($latestTag);
-        $nextTag = $this->incrementTag($gitTag);
-
         // Get issues from branch
         $this->info('Getting issues from branch...');
-        $branchIssues = Str::of($siteBranch)->after('release/')->explode('-')->slice(1);
+        $branchIssues = Str::of($siteBranch)->after('release/')->after('/')->explode('-');
+        Log::debug('Branch issues:', $branchIssues->toArray());
 
         // Sync branch issues with given issues
         $this->info('Syncing branch issues with given issues...');
@@ -79,16 +73,18 @@ class AddOrRemoveIssueFromSite extends Command
 
         // Create new release branch
         $this->info('Creating new release branch...');
+        $stream = fopen("php://output", "w");
         $this->call('create-release-branch', [
-            'version' => $nextTag,
+            'level' => 'prerelease',
             'issues' => $issues->implode(','),
-        ]);
+        ], new StreamOutput($stream));
+        $newBranch = trim(stream_get_contents($stream));
 
         // Update the site branch and deploy
         $this->info('Updating the site branch and deploying...');
         $this->call('update-site-branch', [
             'site' => $site,
-            'branch' => "release/$nextTag-" . $issues->implode('-'),
+            'branch' => $newBranch,
         ]);
     }
 }

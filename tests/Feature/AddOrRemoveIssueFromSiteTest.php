@@ -15,8 +15,8 @@ it('adds 1 issue', function () {
     fakeForgeApi();
     $this->artisan('site add-issues example.com 123')
         ->expectsOutput('Getting branch for site...')
-        ->expectsOutput('Getting tag from branch...')
-        ->expectsOutput('Getting latest git tag that matches and incrementing it...')
+        // ->expectsOutput('Getting tag from branch...')
+        // ->expectsOutput('Getting latest git tag that matches and incrementing it...')
         ->expectsOutput('Getting issues from branch...')
         ->expectsOutput('Syncing branch issues with given issues...')
         ->expectsOutput('Creating new release branch...')
@@ -28,8 +28,8 @@ it('adds 2 issues', function () {
     fakeForgeApi();
     $this->artisan('site add-issues example.com 123,456')
         ->expectsOutput('Getting branch for site...')
-        ->expectsOutput('Getting tag from branch...')
-        ->expectsOutput('Getting latest git tag that matches and incrementing it...')
+        // ->expectsOutput('Getting tag from branch...')
+        // ->expectsOutput('Getting latest git tag that matches and incrementing it...')
         ->expectsOutput('Getting issues from branch...')
         ->expectsOutput('Syncing branch issues with given issues...')
         ->expectsOutput('Creating new release branch...')
@@ -41,8 +41,8 @@ it('removes 1 issue', function () {
     fakeForgeApi();
     $this->artisan('site remove-issues example.com 123')
         ->expectsOutput('Getting branch for site...')
-        ->expectsOutput('Getting tag from branch...')
-        ->expectsOutput('Getting latest git tag that matches and incrementing it...')
+        // ->expectsOutput('Getting tag from branch...')
+        // ->expectsOutput('Getting latest git tag that matches and incrementing it...')
         ->expectsOutput('Getting issues from branch...')
         ->expectsOutput('Syncing branch issues with given issues...')
         ->expectsOutput('Creating new release branch...')
@@ -51,7 +51,7 @@ it('removes 1 issue', function () {
 })->group('dummy-git-repo');
 
 it('removes 2 issues', function () {
-    fakeForgeApi('release/1.0.0-123-456-324');
+    fakeForgeApi('release/1.0.0/123-456-324');
 
     // Add another issue so we can remove 2
     $this->branchThreeName = '324-' . Str::kebab(collect(fake()->words())->join('-'));
@@ -63,8 +63,8 @@ it('removes 2 issues', function () {
 
     $this->artisan('site remove-issues example.com 123,456')
         ->expectsOutput('Getting branch for site...')
-        ->expectsOutput('Getting tag from branch...')
-        ->expectsOutput('Getting latest git tag that matches and incrementing it...')
+        // ->expectsOutput('Getting tag from branch...')
+        // ->expectsOutput('Getting latest git tag that matches and incrementing it...')
         ->expectsOutput('Getting issues from branch...')
         ->expectsOutput('Syncing branch issues with given issues...')
         ->expectsOutput('Creating new release branch...')
@@ -75,7 +75,7 @@ it('removes 2 issues', function () {
 /**
  * I tried using Pest group, but Http didn't carry over that way. The Http calls were going through to the real Forge API.
  */
-function fakeForgeApi($releaseBranchName = 'release/1.0.0-123-456') {
+function fakeForgeApi($releaseBranchName = 'release/1.0.0/123-456') {
     $fakeServers = [
         'servers' => [
             [

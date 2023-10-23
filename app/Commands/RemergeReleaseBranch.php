@@ -9,6 +9,7 @@ use App\Services\Tags;
 use CzProject\GitPhp\Git;
 use Illuminate\Support\Str;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Log;
 use LaravelZero\Framework\Commands\Command;
 
 class RemergeReleaseBranch extends Command
@@ -33,20 +34,14 @@ class RemergeReleaseBranch extends Command
         $this->runProcess('git checkout ' . $releaseBranch);
         $this->mergeBranches($issueBranches);
 
-        // Increment the tag's deploy number
-        // Get the tag from the release branch name
-        $this->info("Incrementing the tag...");
-        $tagFromBranch = $this->getTagFromBranch($releaseBranch); // v0.15 || v0.15.0 || v0.15.0.4
-        $this->info("Tag from branch: {$tagFromBranch}");
+        // Increment the tag's deploy number (prerelease number)
+        // Increment the tag using npm version prerelease, then get the new tag
+        $this->runProcess("npm version prerelease");
 
-        $latestTag = $this->getGitTagFromBranchTag($tagFromBranch);
-        $this->info("Latest tag: {$latestTag}");
+        $newTag = $this->runProcess("git describe --tags --abbrev=0"); // v0.15.0-2
 
-        $newTag = $this->incrementTag($latestTag);
         $this->info("New tag: {$newTag}");
-
-        // Create the new tag
-        $this->runProcess("git tag {$newTag}");
+        Log::info($newTag);
 
         // Push the branch and the tags
         $this->info("Pushing the branch and the tag...");

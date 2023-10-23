@@ -48,12 +48,14 @@ function something(): void
 }
 
 uses()->group('dummy-git-repo')->beforeEach(function () {
+    error_reporting(E_ERROR | E_PARSE);
     $this->git = app()->make(Git::class);
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
     $this->repo = $this->git->init('/tmp/test-repo-origin');
     chdir('/tmp/test-repo-origin');
+    exec('npm init -y');
     touch('./README.md');
     $this->repo->addAllChanges();
     $this->repo->commit('Initial commit');
@@ -74,7 +76,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     touch('./README-456.md');
     $this->repo->addAllChanges();
     $this->repo->commit('456 commit');
-    $this->repo->checkout('master');
+    $this->repo->checkout('main');
 
     $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
     $this->repo->checkout($this->branchOneName);
