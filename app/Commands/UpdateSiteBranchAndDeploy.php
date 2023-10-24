@@ -60,7 +60,7 @@ class UpdateSiteBranchAndDeploy extends Command {
 
         // If the site is blacklabsconsole.com, warn and make the user confirm by typing the site name
         if ($chosenSite->name == 'blacklabsconsole.com') {
-            $this->warn('[WARNING] You are about to deploy to production!');
+            $this->warn('[WARNING] You are about to deploy to production! This will change the branch of blacklabsconsole.com!');
             $inputName = $this->ask("Please type the name of the site to continue.");
             if ($inputName !== $chosenSite->name) {
                 $this->error("You didn't type the name of the site correctly. Aborting.");
