@@ -47,13 +47,13 @@ This command has been lately throwing an error about `zlib` or something. Howeve
 #### Create release branch
 
 ```sh
-blacklabs create-release-branch 0.14.0.1 1001,1002,1003,884,732,1234
+blacklabs create-release-branch minor 1001,1002,1003,884,732,1234
 ```
 
-This will make a release branch like `release/0.14.0.1-1001-1002-1003-884-732-1234` and merge each of those issues into it.
+This will make a release branch like `release/v0.18.1/1001-1002-1003-884-732-1234` and merge each of those issues into it.
 
 1. First, it checks out the `dev` branch and pulls it, to make sure it's up to date.
-2. Then, it makes a new branch from `dev` like `release/0.14.0.1-1001-1002-1003-884-732-1234`
+2. Then, it makes a new branch from `dev` like `release/v0.18.1/1001-1002-1003-884-732-1234`
     1. If it finds an existing branch by that name, it will ask you if you want to delete it and remake it. If you respond affirmative, it will do so, if not, it will exit.
 3. Then, it goes through each issue number provided and tries to find the branch for it.
     1. If it can't find a branch with that issue number in it, it will skip that issue for you to manually merge it in later.
@@ -109,7 +109,7 @@ blacklabs deploy-to-production
 ### Remerge release branch
 
 ```sh
-blacklabs merge-and-increment-tag release/0.14.0.1-1002-1003-1120-843-034 843,034
+blacklabs merge-and-increment-tag release/v0.18.1/1002-1003-1120-843-034 843,034
 ```
 
 This just helps with merging in the issue branch, then incrementing the tag number. The Forge server handles auto-deploy on its own for this workflow. So, this command would only:
@@ -128,16 +128,15 @@ blacklabs site add-issues blacklabtesting.com 388,3843
 ```
 
 1. It grabs the branch currently deployed to that site.
-2. It gets the tag from the branch and increments the `deploy` number of it (the 4th number, for example:
-    
+2. It gets the tag from the latest tag in that branch (I think; TODO: test that) and increments the `prerelease` number, for example:
+
     ```
-    0.13.3.1
+    0.18.0-2
            ^
     ```
 
-    ).
 3. It comes up with a new list of issues based on the existing list in the branch name, and the ones you listed to add or remove.
-4. It creates a new release branch (see [Create Release Branch](#create-release-branch))
+4. It creates a new release branch, incrementing the `prerelease` number (see [Create Release Branch](#create-release-branch))
 5. It updates the given site's branch and triggers a deployment on it (see [Update Site Branch and Deploy](#update-site-branch-and-deploy))
 
 ### Checkout to a branch and handle the migrations

@@ -2,12 +2,17 @@
 
 namespace App\Commands;
 
+use App\Services\RunsProcesses;
 use Illuminate\Console\Scheduling\Schedule;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Process;
 use LaravelZero\Framework\Commands\Command;
+use Illuminate\Support\Str;
 
 class DeployToProduction extends Command
 {
+    use RunsProcesses;
+
     /**
      * The signature of the command.
      *
@@ -48,6 +53,9 @@ class DeployToProduction extends Command
         $this->info("Checking out production branch.");
         $this->runProcess("git checkout {$production}");
 
+        // Get current version for later
+        $currentVersion = 'v' . $this->runProcess("npm run env | grep npm_package_version | cut -d '=' -f2");
+
         $this->info("Pulling latest production branch.");
         $this->runProcess("git pull");
 
@@ -72,20 +80,34 @@ class DeployToProduction extends Command
         $this->info("Deleting {$branch}.");
         $this->runProcess("git branch -D {$branch}");
         $this->runProcess("git push origin --delete {$branch}");
+        
+        // Get the version from the branch, compare it against the previous version to get the type of version bump
+        $versionFromBranch = Str::of($branch)->after('release/')->before('/');
+        Log::debug("Version from branch: $versionFromBranch");
+        Log::debug("Current version: $currentVersion");
 
+        $versionBump = 'patch';
+        if ($this->isVersionNumber($versionFromBranch)) {
+            for ($i = 0; $i < strlen($versionFromBranch); $i++) {
+                if ($versionFromBranch[$i] !== $currentVersion[$i]) {
+                    $versionBump = $i === 1 ? 'major' : ($i === 3 ? 'minor' : 'patch');
+                    break;
+                }
+            }
+        }
+
+        // Tag it and push
+        $this->info("Running $versionBump from $currentVersion.");
+        Log::debug("Running $versionBump from $currentVersion.");
+        $this->runProcess("npm version {$versionBump}");
+        $this->runProcess("git push --tags");
+
+        $this->info("New version: " . $this->runProcess("git describe --tags --abbrev=0"));
         $this->info("Done!");
     }
 
-    public function runProcess($command) {
-        $result = Process::run($command);
-        if (!$result->successful()) {
-            if ($result->errorOutput() && $result->output()) {
-                throw new \Exception($result->errorOutput() . "\n" . $result->output());
-            } else {
-                throw new \Exception($result->errorOutput() ?: $result->output());
-            }
-        }
-        return $result->output();
+    public function isVersionNumber($string) {
+        return preg_match('/^v?\d+\.\d+\.\d+$/', $string);
     }
 
     /**

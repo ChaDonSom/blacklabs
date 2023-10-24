@@ -53,30 +53,30 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
-    $this->repo = $this->git->init('/tmp/test-repo-origin');
+    $this->originRepo = $this->git->init('/tmp/test-repo-origin');
     chdir('/tmp/test-repo-origin');
     exec('npm init -y');
     touch('./README.md');
-    $this->repo->addAllChanges();
-    $this->repo->commit('Initial commit');
-    $this->repo->createBranch('forge-production', true);
-    $this->repo->createBranch('dev', true);
+    $this->originRepo->addAllChanges();
+    $this->originRepo->commit('Initial commit');
+    $this->originRepo->createBranch('forge-production', true);
+    $this->originRepo->createBranch('dev', true);
     file_put_contents('./README.md', 'dev');
-    $this->repo->addAllChanges();
-    $this->repo->commit('Initial dev commit');
+    $this->originRepo->addAllChanges();
+    $this->originRepo->commit('Initial dev commit');
     // Create two branches
     $this->branchOneName = '123-' . Str::kebab(collect(fake()->words())->join('-'));
-    $this->repo->createBranch($this->branchOneName, true);
+    $this->originRepo->createBranch($this->branchOneName, true);
     touch('./README-123.md');
-    $this->repo->addAllChanges();
-    $this->repo->commit('123 commit');
-    $this->repo->checkout('dev');
+    $this->originRepo->addAllChanges();
+    $this->originRepo->commit('123 commit');
+    $this->originRepo->checkout('dev');
     $this->branchTwoName = '456-' . Str::kebab(collect(fake()->words())->join('-'));
-    $this->repo->createBranch($this->branchTwoName, true);
+    $this->originRepo->createBranch($this->branchTwoName, true);
     touch('./README-456.md');
-    $this->repo->addAllChanges();
-    $this->repo->commit('456 commit');
-    $this->repo->checkout('main');
+    $this->originRepo->addAllChanges();
+    $this->originRepo->commit('456 commit');
+    $this->originRepo->checkout('main');
 
     $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
     $this->repo->checkout($this->branchOneName);
