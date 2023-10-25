@@ -5,16 +5,15 @@ namespace App\Commands;
 use App\Services\FindsIssueBranches;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
-use App\Services\Tags;
 use LaravelZero\Framework\Commands\Command;
 use CzProject\GitPhp\Git;
+use Exception;
 use Illuminate\Support\Facades\Log;
 
 class CreateReleaseBranch extends Command {
     use FindsIssueBranches;
     use RunsProcesses;
     use MergesBranches;
-    use Tags;
 
     /**
      * The name and signature of the console command.
@@ -46,14 +45,10 @@ class CreateReleaseBranch extends Command {
         $this->info("Pulling latest dev branch.");
         $repo->pull();
 
-        // Get the next version
-        $version = $this->runProcess("npm version $level --no-git-tag-version");
-
+        $version = $this->getNextVersionWithoutCommitting($level); // This is because we don't want to commit the
+        // version change until we've merged the issue branches in
         Log::debug("Version: {$version}");
-
-        // Toss out the changes to package.json
-        $this->runProcess("git checkout package.json");
-
+        
         $this->info("Creating release branch for version {$version}.");
 
         $issuesFormattedForBranch = str_replace(',', '-', $issues);
@@ -80,8 +75,12 @@ class CreateReleaseBranch extends Command {
 
         $this->mergeBranches($issueBranches);
 
+        // Officially apply the version
+        $this->runProcess("npm version $level");
+
         $this->info("Pushing release branch to origin.");
         $this->runProcess("git push origin $branchName");
+        $this->runProcess("git push origin --tags");
 
         $this->info("Creating release PR.");
         $prBody = "- #" . implode("\n- #", $issuesArray) . "\n";
@@ -101,14 +100,26 @@ class CreateReleaseBranch extends Command {
             }
         }
 
-        // Create and push a tag for the release
-        $this->info("Creating release tag.");
-        // Remove any 'v' from the version number
-        $version = str_replace('v', '', $version);
-        $this->runProcess("git tag -a v{$version} -m 'Release {$version}'");
-        $this->runProcess("git push origin v{$version}");
-
         $this->info("Done.");
         $this->info("Branch: {$branchName}");
+    }
+
+    /**
+     * Get the next version number. This will run npm version, then throw out the file changes and tag.
+     * @param string $level The level of the release (major, minor, patch, prerelease)
+     * @return string The next version number
+     * @throws Exception If something goes wrong with the commands
+     */
+    public function getNextVersionWithoutCommitting(string $level): string {
+        // Get the next version
+        $version = $this->runProcess("npm version $level --no-git-tag-version");
+
+        // Toss out the changes to package.json
+        $this->runProcess("git checkout package.json");
+        $this->runProcess("git checkout package-lock.json");
+        // Also toss out the tag
+        if ($this->runProcess("git tag -l {$version}")) $this->runProcess("git tag -d {$version}");
+
+        return $version;
     }
 }

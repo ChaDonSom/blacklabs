@@ -116,9 +116,6 @@ This just helps with merging in the issue branch, then incrementing the tag numb
 
 1. Merge the specified issue branches in
 2. Increment the tag's deploy number (from the one found in the specified branch)
-    1. find the tag from the branch
-    2. find the latest tag that matches that tag up to the hotfix number
-    3. increment the deploy number of it
 3. Push the branch and the tags
 
 ### Add or Remove Issues from Site
@@ -128,7 +125,7 @@ blacklabs site add-issues blacklabtesting.com 388,3843
 ```
 
 1. It grabs the branch currently deployed to that site.
-2. It gets the tag from the latest tag in that branch (I think; TODO: test that) and increments the `prerelease` number, for example:
+2. It gets the tag from the `package.json` in that branch (I think; TODO: test that) and increments the `prerelease` number, for example:
 
     ```
     0.18.0-2

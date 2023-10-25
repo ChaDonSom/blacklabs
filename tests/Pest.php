@@ -48,7 +48,6 @@ function something(): void
 }
 
 uses()->group('dummy-git-repo')->beforeEach(function () {
-    error_reporting(E_ERROR | E_PARSE);
     $this->git = app()->make(Git::class);
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
@@ -57,6 +56,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     chdir('/tmp/test-repo-origin');
     exec('npm init -y');
     touch('./README.md');
+    touch('./package-lock.json');
     $this->originRepo->addAllChanges();
     $this->originRepo->commit('Initial commit');
     $this->originRepo->createBranch('forge-production', true);

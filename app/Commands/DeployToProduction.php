@@ -54,7 +54,7 @@ class DeployToProduction extends Command
         $this->runProcess("git checkout {$production}");
 
         // Get current version for later
-        $currentVersion = 'v' . $this->runProcess("npm run env | grep npm_package_version | cut -d '=' -f2");
+        $currentVersion = 'v' . $this->runProcess("node -p \"require('./package.json').version\"");
 
         $this->info("Pulling latest production branch.");
         $this->runProcess("git pull");
@@ -100,6 +100,7 @@ class DeployToProduction extends Command
         $this->info("Running $versionBump from $currentVersion.");
         Log::debug("Running $versionBump from $currentVersion.");
         $this->runProcess("npm version {$versionBump}");
+        $this->runProcess("git push");
         $this->runProcess("git push --tags");
 
         $this->info("New version: " . $this->runProcess("git describe --tags --abbrev=0"));

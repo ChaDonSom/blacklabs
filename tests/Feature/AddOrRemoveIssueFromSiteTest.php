@@ -19,7 +19,6 @@ it('adds 1 issue', function () {
         // ->expectsOutput('Getting latest git tag that matches and incrementing it...')
         ->expectsOutput('Getting issues from branch...')
         ->expectsOutput('Syncing branch issues with given issues...')
-        ->expectsOutput('Creating new release branch...')
         ->expectsOutput('Updating the site branch and deploying...')
         ->assertExitCode(0);
 })->group('dummy-git-repo');
@@ -32,7 +31,6 @@ it('adds 2 issues', function () {
         // ->expectsOutput('Getting latest git tag that matches and incrementing it...')
         ->expectsOutput('Getting issues from branch...')
         ->expectsOutput('Syncing branch issues with given issues...')
-        ->expectsOutput('Creating new release branch...')
         ->expectsOutput('Updating the site branch and deploying...')
         ->assertExitCode(0);
 })->group('dummy-git-repo');

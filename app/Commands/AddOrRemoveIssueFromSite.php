@@ -4,18 +4,15 @@ namespace App\Commands;
 
 use App\Services\GetsConsoleSites;
 use App\Services\RunsProcesses;
-use App\Services\Tags;
 use App\Services\UsesForgeHttp;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use LaravelZero\Framework\Commands\Command;
-use Symfony\Component\Console\Output\StreamOutput;
 
 class AddOrRemoveIssueFromSite extends Command
 {
     use GetsConsoleSites;
     use UsesForgeHttp;
-    use Tags;
     use RunsProcesses;
 
     /**
@@ -70,6 +67,17 @@ class AddOrRemoveIssueFromSite extends Command
         $issues = $isAdding
             ? $branchIssues->merge($issues)->unique()->sort()
             : $branchIssues->diff($issues)->sort();
+
+        // TODO: If we're only adding issues, let's just use the current branch
+        // if ($isAdding) {
+        //     $this->info('Adding issues to current branch...');
+        //     $issuesFormattedForBranch = $issues->implode('-');
+        //     $branchName = "release/{$issuesFormattedForBranch}";
+        //     $this->runProcess("git checkout -b {$branchName}");
+        //     $this->runProcess("git push -u origin {$branchName}");
+        //     return;
+        // }
+
 
         // Create new release branch
         $this->info('Creating new release branch...');

@@ -5,10 +5,6 @@ namespace App\Commands;
 use App\Services\FindsIssueBranches;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
-use App\Services\Tags;
-use CzProject\GitPhp\Git;
-use Illuminate\Support\Str;
-use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Log;
 use LaravelZero\Framework\Commands\Command;
 
@@ -17,7 +13,6 @@ class RemergeReleaseBranch extends Command
     use RunsProcesses;
     use FindsIssueBranches;
     use MergesBranches;
-    use Tags;
 
     protected $signature = 'merge-and-increment-tag
                             {release-branch : The release branch to merge new changes into (required)}
