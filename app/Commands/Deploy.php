@@ -33,7 +33,7 @@ class Deploy extends Command
     {
         // If we're not in the ChaDonSom/blacklabs repo, exit
         $url = trim($this->runProcess('git config --get remote.origin.url'));
-        if ($url !== 'git@github.com:ChaDonSom/blacklabs.git') {
+        if ($url !== 'git@github.com:ChaDonSom/blacklabs.git' && $url !== 'git@github.com:chadonsom/blacklabs.git') {
             $this->error('You must be in the ChaDonSom/blacklabs repo to run this command.');
             return;
         }
