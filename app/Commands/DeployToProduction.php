@@ -62,25 +62,6 @@ class DeployToProduction extends Command
         $this->info("Merging {$branch} into production.");
         $this->runProcess("git merge origin/{$branch}");
 
-        $this->info("Pushing production branch.");
-        $this->runProcess("git push");
-
-        $this->info("Checking out dev branch.");
-        $this->runProcess("git checkout dev");
-
-        $this->info("Pulling latest dev branch.");
-        $this->runProcess("git pull");
-
-        $this->info("Merging production into dev.");
-        $this->runProcess("git merge {$production}");
-
-        $this->info("Pushing dev branch.");
-        $this->runProcess("git push");
-
-        $this->info("Deleting {$branch}.");
-        $this->runProcess("git branch -D {$branch}");
-        $this->runProcess("git push origin --delete {$branch}");
-        
         // Get the version from the branch, compare it against the previous version to get the type of version bump
         $versionFromBranch = Str::of($branch)->after('release/')->before('/');
         Log::debug("Version from branch: $versionFromBranch");
@@ -100,8 +81,26 @@ class DeployToProduction extends Command
         $this->info("Running $versionBump from $currentVersion.");
         Log::debug("Running $versionBump from $currentVersion.");
         $this->runProcess("npm version {$versionBump}");
+        
+        $this->info("Pushing production branch.");
         $this->runProcess("git push");
         $this->runProcess("git push --tags");
+
+        $this->info("Checking out dev branch.");
+        $this->runProcess("git checkout dev");
+
+        $this->info("Pulling latest dev branch.");
+        $this->runProcess("git pull");
+
+        $this->info("Merging production into dev.");
+        $this->runProcess("git merge {$production}");
+
+        $this->info("Pushing dev branch.");
+        $this->runProcess("git push");
+
+        $this->info("Deleting {$branch}.");
+        $this->runProcess("git branch -D {$branch}");
+        $this->runProcess("git push origin --delete {$branch}");
 
         $this->info("New version: " . $this->runProcess("git describe --tags --abbrev=0"));
         $this->info("Done!");
