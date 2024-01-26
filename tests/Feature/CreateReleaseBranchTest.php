@@ -66,29 +66,29 @@ it('works in a dummy git repo', function () {
 // })->group('dummy-git-repo');
 
 it('can delete the branch if instructed to', function () {
-    $this->repo->createBranch('release/v2.0.0/123-456');
+    $this->repo->createBranch('release/v2.0.0-0/123-456');
 
     $this->artisan('create-release-branch major 123,456')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
-        ->expectsOutput('Creating release branch for version v2.0.0.')
-        ->expectsQuestion('Branch release/v2.0.0/123-456 already exists. Should we delete it?', 'yes')
+        ->expectsOutput('Creating release branch for version v2.0.0-0.')
+        ->expectsQuestion('Branch release/v2.0.0-0/123-456 already exists. Should we delete it?', 'yes')
         ->expectsOutput('Pulling issue branches into release branch.')
         ->expectsOutput('Finding branch for issue 123...')
         ->expectsOutput('Finding branch for issue 456...')
         ->expectsOutput('Pushing release branch to origin.')
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Done.')
-        ->expectsOutput('Branch: release/v2.0.0/123-456')
+        ->expectsOutput('Branch: release/v2.0.0-0/123-456')
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
 
-it('can skip missing issue branches', function() {
+it('can skip missing issue branches', function () {
     $this->artisan('create-release-branch major 123,324')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
-        ->expectsOutput('Creating release branch for version v2.0.0.')
+        ->expectsOutput('Creating release branch for version v2.0.0-0.')
         ->expectsOutput('Pulling issue branches into release branch.')
         ->expectsOutput('Finding branch for issue 123...')
         ->expectsOutput('No branch found for issue 324. Please choose one, or skip this issue for now.')
@@ -107,7 +107,7 @@ it('can use provided missing issue branches', function () {
     $this->artisan('create-release-branch patch 123,324')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
-        ->expectsOutput('Creating release branch for version v1.0.1.')
+        ->expectsOutput('Creating release branch for version v1.0.1-0.')
         ->expectsOutput('Pulling issue branches into release branch.')
         ->expectsOutput('Finding branch for issue 123...')
         ->expectsOutput('Finding branch for issue 324...')
@@ -116,7 +116,7 @@ it('can use provided missing issue branches', function () {
         ->expectsOutput('Pushing release branch to origin.')
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Done.')
-        ->expectsOutput('Branch: release/v1.0.1/123-324')
+        ->expectsOutput('Branch: release/v1.0.1-0/123-324')
         ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
@@ -125,19 +125,19 @@ it('doesnt add vs from the tag', function () {
     $this->artisan('create-release-branch minor 123,456')
         ->expectsOutput('Checking out dev branch.')
         ->expectsOutput('Pulling latest dev branch.')
-        ->expectsOutput('Creating release branch for version v1.1.0.')
+        ->expectsOutput('Creating release branch for version v1.1.0-0.')
         ->expectsOutput('Pulling issue branches into release branch.')
         ->expectsOutput('Finding branch for issue 123...')
         ->expectsOutput('Finding branch for issue 456...')
         ->expectsOutput('Pushing release branch to origin.')
         ->expectsOutput('Creating release PR.')
         ->expectsOutput('Done.')
-        ->expectsOutput('Branch: release/v1.1.0/123-456')
+        ->expectsOutput('Branch: release/v1.1.0-0/123-456')
         ->assertExitCode(0)
         ->run();
     // Then also check the tag it created and make sure the tag has only one 'v'
     $tags = $this->runProcess('git tag --list v1.1.0*');
     $tags = explode("\n", $tags);
     $tags = array_filter($tags);
-    expect(end($tags))->toBe('v1.1.0');
+    expect(end($tags))->toBe('v1.1.0-0');
 })->group('dummy-git-repo');

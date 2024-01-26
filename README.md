@@ -58,6 +58,14 @@ You can also specify the version number, like `v0.18.1`, and it will use that in
 blacklabs create-release-branch v0.18.1 1001,1002,1003,884,732,1234
 ```
 
+> **Note**
+>
+> -   Use `patch`, or the next 'patch' version number, for hotfix or bugfix releases.
+>
+> -   Use `minor`, or the next 'minor' version number, for feature releases.
+>
+> -   We don't have a true purpose yet for the 'major' number, but the industry standard for Semantic Versioning is: use `major`, or the next 'major' version number, for breaking changes.
+
 1. First, it checks out the `dev` branch and pulls it, to make sure it's up to date.
 2. Then, it makes a new branch from `dev` like `release/v0.18.1/1001-1002-1003-884-732-1234`
     1. If it finds an existing branch by that name, it will ask you if you want to delete it and remake it. If you respond affirmative, it will do so, if not, it will exit.

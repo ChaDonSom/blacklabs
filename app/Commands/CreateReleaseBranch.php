@@ -38,6 +38,13 @@ class CreateReleaseBranch extends Command
     public function handle(Git $git)
     {
         $level = $this->argument('level');
+        if ($this->isVersionNumber($level)) {
+            // If the level is a version number and doesn't have -x in it, we'll add that.
+            if (!str_contains($level, '-')) $level = "{$level}-0";
+        } else {
+            // If the level doesn't have 'pre' in it, we'll add it.
+            if (in_array($level, ['major', 'minor', 'patch']) && !str_contains($level, 'pre')) $level = "pre{$level}";
+        }
         $issues = $this->argument('issues');
 
         $this->info("Checking out dev branch.");
@@ -124,5 +131,13 @@ class CreateReleaseBranch extends Command
         if ($this->runProcess("git tag -l {$version}")) $this->runProcess("git tag -d {$version}");
 
         return $version;
+    }
+
+    /**
+     * Determine whether the given string is a version number.
+     */
+    private function isVersionNumber(string $string): bool
+    {
+        return preg_match('/^v?\d+\.\d+\.\d+(-\d+)?$/', $string);
     }
 }
