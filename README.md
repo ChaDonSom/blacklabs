@@ -52,10 +52,17 @@ blacklabs create-release-branch minor 1001,1002,1003,884,732,1234
 
 This will make a release branch like `release/v0.18.1/1001-1002-1003-884-732-1234` and merge each of those issues into it.
 
+You can also specify the version number, like `v0.18.1`, and it will use that instead of incrementing the version number.
+
+```sh
+blacklabs create-release-branch v0.18.1 1001,1002,1003,884,732,1234
+```
+
 1. First, it checks out the `dev` branch and pulls it, to make sure it's up to date.
 2. Then, it makes a new branch from `dev` like `release/v0.18.1/1001-1002-1003-884-732-1234`
     1. If it finds an existing branch by that name, it will ask you if you want to delete it and remake it. If you respond affirmative, it will do so, if not, it will exit.
 3. Then, it goes through each issue number provided and tries to find the branch for it.
+
     1. If it can't find a branch with that issue number in it, it will skip that issue for you to manually merge it in later.
     2. If it finds more than one branch with that issue number in it, it will ask you which one to use.
     3. Then, having found the branch to merge, it merges it from `origin`.
@@ -63,7 +70,9 @@ This will make a release branch like `release/v0.18.1/1001-1002-1003-884-732-123
         > **Note**
         >
         > This means each issue's branch needs to be pushed to origin beforehand.
+
     4. If it runs into a merge conflict, it will pause and ask you to resolve the merge manually. After resolving it, you can tell it to continue.
+
 4. Once the merging is done, it pushes the branch to `origin`.
 5. Then, it creates a PR for the release with each issue listed in its description.
 6. Then, it adds a tag as well for that version (and pushes it).

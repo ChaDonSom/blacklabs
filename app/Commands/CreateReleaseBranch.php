@@ -10,7 +10,8 @@ use CzProject\GitPhp\Git;
 use Exception;
 use Illuminate\Support\Facades\Log;
 
-class CreateReleaseBranch extends Command {
+class CreateReleaseBranch extends Command
+{
     use FindsIssueBranches;
     use RunsProcesses;
     use MergesBranches;
@@ -34,7 +35,8 @@ class CreateReleaseBranch extends Command {
     /**
      * Execute the console command.
      */
-    public function handle(Git $git) {
+    public function handle(Git $git)
+    {
         $level = $this->argument('level');
         $issues = $this->argument('issues');
 
@@ -48,7 +50,7 @@ class CreateReleaseBranch extends Command {
         $version = $this->getNextVersionWithoutCommitting($level); // This is because we don't want to commit the
         // version change until we've merged the issue branches in
         Log::debug("Version: {$version}");
-        
+
         $this->info("Creating release branch for version {$version}.");
 
         $issuesFormattedForBranch = str_replace(',', '-', $issues);
@@ -76,7 +78,7 @@ class CreateReleaseBranch extends Command {
         $this->mergeBranches($issueBranches);
 
         // Officially apply the version
-        $this->runProcess("npm version $level");
+        $this->runProcess("npm version $version"); // This will commit the version change
 
         $this->info("Pushing release branch to origin.");
         $this->runProcess("git push origin $branchName");
@@ -106,13 +108,14 @@ class CreateReleaseBranch extends Command {
 
     /**
      * Get the next version number. This will run npm version, then throw out the file changes and tag.
-     * @param string $level The level of the release (major, minor, patch, prerelease)
+     * @param string $versionOrLevel The level of the release (major, minor, patch, prerelease) - or - the version number
      * @return string The next version number
      * @throws Exception If something goes wrong with the commands
      */
-    public function getNextVersionWithoutCommitting(string $level): string {
+    public function getNextVersionWithoutCommitting(string $versionOrLevel): string
+    {
         // Get the next version
-        $version = $this->runProcess("npm version $level --no-git-tag-version");
+        $version = $this->runProcess("npm version $versionOrLevel --no-git-tag-version");
 
         // Toss out the changes to package.json
         $this->runProcess("git checkout package.json");
