@@ -42,7 +42,6 @@ class RemergeReleaseBranch extends Command
             // Get the release branches that include the given issues in their names
             $this->info("No release branch given, trying to find the release branch from the issues...");
             $releaseBranches = $this->findReleaseBranches(explode(',', $issues));
-            print_r($releaseBranches);
             $this->info("Found release branches: " . implode(', ', $releaseBranches));
             if (count($releaseBranches) === 0) {
                 $this->error("No release branches found for the given issues.");
@@ -63,8 +62,11 @@ class RemergeReleaseBranch extends Command
         // Find the issue branches from the issue numbers
         $issueBranches = $this->findIssueBranches(explode(',', $issues));
 
+        $this->info("Merging the issue branches into the release branch {$releaseBranch}...");
+
         // Merge the issue branches into the release branch
-        $this->runProcess('git checkout ' . $releaseBranch);
+        $wasAlreadyOnReleaseBranch = $this->isOnBranch($releaseBranch);
+        if (!$wasAlreadyOnReleaseBranch) $this->runProcess('git checkout ' . $releaseBranch);
         $this->mergeBranches($issueBranches);
 
         // Increment the tag's deploy number (prerelease number)
@@ -74,6 +76,9 @@ class RemergeReleaseBranch extends Command
         // Push the branch and the tags
         $this->info("Pushing the branch and the tag...");
         $this->runProcess("git push origin {$releaseBranch} --follow-tags");
+
+        // Check back out to the original branch
+        if (!$wasAlreadyOnReleaseBranch) $this->runProcess("git checkout -");
 
         $this->info("Done!");
     }
@@ -106,13 +111,19 @@ class RemergeReleaseBranch extends Command
             $thisIssuesBranches = $this->runProcess(
                 "git branch --list --remote 'origin/release/*/*{$issue}*'"
             );
-            print_r('thisIssuesBranches: ');
-            print_r($thisIssuesBranches);
             $releaseBranches = array_merge($releaseBranches, array_filter(
                 explode("\n", $thisIssuesBranches),
                 fn ($branch) => strlen($branch) > 0
             ));
         }
         return $releaseBranches;
+    }
+
+    /**
+     * Find if we're already on the given branch.
+     */
+    private function isOnBranch(string $branchName): bool
+    {
+        return trim($this->runProcess('git rev-parse --abbrev-ref HEAD')) === $branchName;
     }
 }
