@@ -81,6 +81,7 @@ class RemergeReleaseBranch extends Command
         if (!$wasAlreadyOnReleaseBranch) $this->runProcess("git checkout -");
 
         $this->info("Done!");
+        $this->info("Tag: " . $this->runProcess("git describe --tags --abbrev=0"));
     }
 
     /**
