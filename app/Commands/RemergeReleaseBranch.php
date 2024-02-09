@@ -57,21 +57,30 @@ class RemergeReleaseBranch extends Command
                     scroll: 10,
                 );
             }
+
+            // Trim 'origin/' from the branch name if it's there
+            $releaseBranch = str_replace('origin/', '', $releaseBranch);
         }
 
         // Find the issue branches from the issue numbers
         $issueBranches = $this->findIssueBranches(explode(',', $issues));
 
-        $this->info("Merging the issue branches into the release branch {$releaseBranch}...");
-
-        // Merge the issue branches into the release branch
+        // Check out the release branch
+        $this->info("Checking out the release branch {$releaseBranch}...");
         $wasAlreadyOnReleaseBranch = $this->isOnBranch($releaseBranch);
         if (!$wasAlreadyOnReleaseBranch) $this->runProcess('git checkout ' . $releaseBranch);
+
+        // Make sure we're up to date with the remote release branch
+        $this->info("Pulling the latest changes from the release branch...");
+        $this->runProcess("git pull origin {$releaseBranch}");
+
+        // Merge the issue branches into the release branch
+        $this->info("Merging the issue branches into the release branch {$releaseBranch}...");
         $this->mergeBranches($issueBranches);
 
         // Increment the tag's deploy number (prerelease number)
         // Increment the tag using npm version prerelease, then get the new tag
-        $this->runProcess("npm version prerelease");
+        $tag = $this->runProcess("npm version prerelease");
 
         // Push the branch and the tags
         $this->info("Pushing the branch and the tag...");
@@ -81,7 +90,7 @@ class RemergeReleaseBranch extends Command
         if (!$wasAlreadyOnReleaseBranch) $this->runProcess("git checkout -");
 
         $this->info("Done!");
-        $this->info("Tag: " . $this->runProcess("git describe --tags --abbrev=0"));
+        $this->info("Tag: " . trim($tag));
     }
 
     /**
