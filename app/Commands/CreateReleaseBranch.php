@@ -85,7 +85,17 @@ class CreateReleaseBranch extends Command
         $this->mergeBranches($issueBranches);
 
         // Officially apply the version
-        $this->runProcess("npm version $version"); // This will commit the version change
+        try {
+            $this->runProcess("npm version $version"); // This will commit the version change
+        } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'already exists')) {
+                $this->warn("The git tag already exists. Please set it up manually.");
+            } else {
+                $this->error("Failed to apply the version for some other reason: " . $e->getMessage());
+                $this->error("Please set it up manually, then push the branch and tags, and create the PR.");
+                return;
+            }
+        }
 
         $this->info("Pushing release branch to origin.");
         $this->runProcess("git push origin $branchName");

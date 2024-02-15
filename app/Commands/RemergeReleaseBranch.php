@@ -80,7 +80,19 @@ class RemergeReleaseBranch extends Command
 
         // Increment the tag's deploy number (prerelease number)
         // Increment the tag using npm version prerelease, then get the new tag
-        $tag = $this->runProcess("npm version prerelease");
+        $tag = '';
+        try {
+            $this->runProcess("npm version prerelease");
+        } catch (\Exception $e) {
+            if (str_contains($e->getMessage(), 'already exists')) {
+                $this->warn("The git tag already exists. Please set it up manually.");
+            } else {
+                $this->error("Failed to apply the version for some other reason: " . $e->getMessage());
+                $this->error("Please set it up manually, then push the branch and tags.");
+                if (!$wasAlreadyOnReleaseBranch) $this->runProcess("git checkout -");
+                return;
+            }
+        }
 
         // Push the branch and the tags
         $this->info("Pushing the branch and the tag...");
