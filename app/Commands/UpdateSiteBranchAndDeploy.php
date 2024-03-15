@@ -10,7 +10,8 @@ use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\search;
 
-class UpdateSiteBranchAndDeploy extends Command {
+class UpdateSiteBranchAndDeploy extends Command
+{
     use GetsConsoleSites;
     use UsesForgeHttp;
     use ChoosesBranch;
@@ -34,7 +35,8 @@ class UpdateSiteBranchAndDeploy extends Command {
     /**
      * Execute the console command.
      */
-    public function handle() {
+    public function handle()
+    {
         $site = $this->argument('site');
         $branch = $this->argument('branch');
 
@@ -42,7 +44,8 @@ class UpdateSiteBranchAndDeploy extends Command {
 
         // Get the site from forge API by getting servers, then sites, then filtering by site name
         $sites = $this->getConsoleSites($this->client);
-        
+        Log::debug('Sites:', [$sites]);
+
         // Ask for the site and provide options from forge's API
         $chosenSite = $site ?? search(
             label: 'Which site would you like to update and deploy?',
