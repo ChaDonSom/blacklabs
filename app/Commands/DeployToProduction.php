@@ -18,7 +18,7 @@ class DeployToProduction extends Command
      *
      * @var string
      */
-    protected $signature = 'deploy-to-production {branch? : The branch to deploy (will ask if not provided)}';
+    protected $signature = 'deploy-to-production {branch? : The branch to deploy (will ask if not provided)} {--f|force : Skip the warning}';
 
     /**
      * The description of the command.
@@ -34,14 +34,16 @@ class DeployToProduction extends Command
      */
     public function handle()
     {
-        $production = 'forge-production';
-        $this->warn("[WARNING] Only run this command if you know what you're doing.");
-        $inputName = $this->ask("Please type the name of the production branch to continue.");
-        if ($inputName !== $production) {
-            $this->error("You didn't type the name of the production branch correctly. Aborting.");
-            return;
+        if (!$this->option('force')) {
+            $production = 'forge-production';
+            $this->warn("[WARNING] Only run this command if you know what you're doing.");
+            $inputName = $this->ask("Please type the name of the production branch to continue.");
+            if ($inputName !== $production) {
+                $this->error("You didn't type the name of the production branch correctly. Aborting.");
+                return;
+            }
         }
-        
+
         $branch = $this->argument('branch');
         if (!$branch) {
             $branchesToChooseFrom = explode("\n", $this->runProcess('git branch --list "release/*" --format="%(refname:short)"'));
@@ -81,7 +83,7 @@ class DeployToProduction extends Command
         $this->info("Running $versionBump from $currentVersion.");
         Log::debug("Running $versionBump from $currentVersion.");
         $this->runProcess("npm version {$versionBump}");
-        
+
         $this->info("Pushing production branch.");
         $this->runProcess("git push");
         $this->runProcess("git push --tags");
@@ -106,7 +108,8 @@ class DeployToProduction extends Command
         $this->info("Done!");
     }
 
-    public function isVersionNumber($string) {
+    public function isVersionNumber($string)
+    {
         return preg_match('/^v?\d+\.\d+\.\d+$/', $string);
     }
 
