@@ -33,7 +33,7 @@ class ShowSiteBranches extends Command
     public function handle()
     {
         // Get the sites from forge API by getting servers, then sites
-        $sites = $this->getConsoleSites($this->getForgeHttpRequest());
+        $sites = $this->getConsoleSites($this->getForgeHttpRequest(), true);
 
         $this->table(['Site', 'Branch'], $sites->map(function ($site) {
             return [

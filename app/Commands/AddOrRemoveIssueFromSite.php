@@ -53,7 +53,7 @@ class AddOrRemoveIssueFromSite extends Command
 
         // Get branch for site
         $this->info('Getting branch for site...');
-        $sites = $this->getConsoleSites($this->getForgeHttpRequest());
+        $sites = $this->getConsoleSites($this->getForgeHttpRequest(), true);
         $chosenSite = $sites->firstWhere('name', $site);
         Log::debug('Chosen site:', [$chosenSite]);
         if (!$chosenSite) {

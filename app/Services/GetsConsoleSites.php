@@ -6,13 +6,14 @@ use Illuminate\Support\Facades\Storage;
 
 trait GetsConsoleSites
 {
-    public function getConsoleSites(\Illuminate\Http\Client\PendingRequest $request)
+    public function getConsoleSites(\Illuminate\Http\Client\PendingRequest $request, $force = false)
     {
         $fileName = app()->runningUnitTests() ? 'forge-sites-test.json' : 'forge-sites.json';
         // If $fileName is new enough, use it
         if (
             Storage::exists($fileName)
             && Storage::lastModified($fileName) > (now()->subMinutes(5)->valueOf() / 1000)
+            && !$force
         ) {
             return collect(json_decode(Storage::get($fileName)));
         }
