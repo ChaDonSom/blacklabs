@@ -66,10 +66,11 @@ class DeployToProduction extends Command
 
         // Get the version from the branch, compare it against the previous version to get the type of version bump
         $versionFromBranch = Str::of($branch)->after('release/')->before('/');
+        if ($versionFromBranch[0] !== 'v') $versionFromBranch = 'v' . $versionFromBranch;
         Log::debug("Version from branch: $versionFromBranch");
         Log::debug("Current version: $currentVersion");
 
-        $versionBump = 'patch';
+        $versionBump = '?';
         if ($this->isVersionNumber($versionFromBranch)) {
             for ($i = 0; $i < strlen($versionFromBranch); $i++) {
                 if ($versionFromBranch[$i] !== $currentVersion[$i]) {
