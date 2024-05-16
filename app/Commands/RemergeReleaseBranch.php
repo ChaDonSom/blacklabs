@@ -93,6 +93,7 @@ class RemergeReleaseBranch extends Command
                 return;
             }
         }
+        $tag = trim($this->runProcess("git describe --tags --abbrev=0"));
 
         // Push the branch and the tags
         $this->info("Pushing the branch and the tag...");
