@@ -66,18 +66,23 @@ class DeployToProduction extends Command
 
         // Get the version from the branch, compare it against the previous version to get the type of version bump
         $versionFromBranch = Str::of($branch)->after('release/')->before('/');
-        if ($versionFromBranch[0] !== 'v') $versionFromBranch = 'v' . $versionFromBranch;
         Log::debug("Version from branch: $versionFromBranch");
         Log::debug("Current version: $currentVersion");
 
         $versionBump = '?';
         if ($this->isVersionNumber($versionFromBranch)) {
             for ($i = 0; $i < strlen($versionFromBranch); $i++) {
+                Log::debug("Comparing {$versionFromBranch[$i]} to {$currentVersion[$i]}");
                 if ($versionFromBranch[$i] !== $currentVersion[$i]) {
+                    Log::debug("Found difference at $i.");
                     $versionBump = $i === 1 ? 'major' : ($i === 3 ? 'minor' : 'patch');
+                    Log::debug("Version bump: $versionBump");
                     break;
                 }
             }
+        } else if ($this->isIssueBranch($versionFromBranch)) {
+            Log::debug("Branch is an issue branch.");
+            $versionBump = 'patch';
         }
 
         // Tag it and push
@@ -112,6 +117,14 @@ class DeployToProduction extends Command
     public function isVersionNumber($string)
     {
         return preg_match('/^v?\d+\.\d+\.\d+$/', $string);
+    }
+
+    /**
+     * Determine whether the given branch is an issue branch. Issue branches are named {issue number}-{issue title slug}.
+     */
+    private function isIssueBranch(string $branchName): bool
+    {
+        return preg_match('/^\d+-/', $branchName);
     }
 
     /**
