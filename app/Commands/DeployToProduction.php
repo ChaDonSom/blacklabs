@@ -61,7 +61,7 @@ class DeployToProduction extends Command
         $this->info("Pulling latest production branch.");
         $this->runProcess("git pull");
 
-        $this->info("Merging {$branch} into production.");
+        $this->info("Merging {$branch} into production."); // Merging release/v0.31.4-0/1537 into production.
         $this->runProcess("git merge origin/{$branch}");
 
         // Get the version from the branch, compare it against the previous version to get the type of version bump
@@ -116,7 +116,7 @@ class DeployToProduction extends Command
 
     public function isVersionNumber($string)
     {
-        return preg_match('/^v?\d+\.\d+\.\d+$/', $string);
+        return preg_match('/^v?\d+\.\d+\.\d+(-\d+)?$/', $string);
     }
 
     /**
