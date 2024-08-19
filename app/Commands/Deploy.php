@@ -55,13 +55,6 @@ class Deploy extends Command
             return;
         }
 
-        $repo = $git->open(getcwd());
-        $this->info('Deploying blacklabs CLI to Packagist.');
-        $repo->checkout('master');
-
-        $this->info('Running tests...');
-        $this->runProcess('php blacklabs test');
-
         $this->info('Getting version number...');
         $version = trim($this->runProcess('git describe --abbrev=0 --tags'));
         $this->info($version);
@@ -72,6 +65,13 @@ class Deploy extends Command
         };
         $this->info("New version number: {$version}");
 
+        $repo = $git->open(getcwd());
+        $this->info('Deploying blacklabs CLI to Packagist.');
+        $repo->checkout('master');
+
+        $this->info('Running tests...');
+        $this->runProcess('php blacklabs test');
+
         $this->info('Building Phar...');
         $this->runProcess('php blacklabs app:build --build-version=' . $version);
 
@@ -80,7 +80,7 @@ class Deploy extends Command
         $repo->commit('Build Phar for version ' . $version);
 
         $this->info('Tagging release...');
-        $repo->createTag($version, [ '-m' => "Release {$version}" ]);
+        $repo->createTag($version, ['-m' => "Release {$version}"]);
         $this->info('Pushing tag...');
         $repo->push();
         $repo->push('origin', ['--tags']);
@@ -88,7 +88,8 @@ class Deploy extends Command
         $this->info('Done.');
     }
 
-    public function runProcess($command) {
+    public function runProcess($command)
+    {
         $result = Process::run($command);
         if (!$result->successful()) {
             throw new \Exception($result->errorOutput() ?: $result->output());
@@ -96,7 +97,8 @@ class Deploy extends Command
         return $result->output();
     }
 
-    public function incrementMajor($version) {
+    public function incrementMajor($version)
+    {
         $versionArray = explode('.', $version);
         $versionArray[0]++;
         $versionArray[1] = 0;
@@ -104,14 +106,16 @@ class Deploy extends Command
         return implode('.', $versionArray);
     }
 
-    public function incrementMinor($version) {
+    public function incrementMinor($version)
+    {
         $versionArray = explode('.', $version);
         $versionArray[1]++;
         $versionArray[2] = 0;
         return implode('.', $versionArray);
     }
 
-    public function incrementPatch($version) {
+    public function incrementPatch($version)
+    {
         $versionArray = explode('.', $version);
         $versionArray[2]++;
         return implode('.', $versionArray);
