@@ -8,6 +8,8 @@ trait ManagesCleanupBranches
 {
     use RunsProcesses;
 
+    public $silent = false;
+
     public function findCurrentCleanupBranch()
     {
         $output = $this->runProcess("git branch | grep \"big-cleanup\"");
@@ -63,22 +65,23 @@ trait ManagesCleanupBranches
         return $conflictingFiles->toArray();
     }
 
-    public function getFilesThatAreChangedByBothBranches($branch): array
+    public function getFilesThatAreChangedByBothBranches($branch = null): array
     {
         // We do a diff from the common ancestor of both branches, to the head of both brenches. We compare the
         // files that are different between the two branches, and return the list of files that are different.
 
+        if (!$branch) {
+            $branch = $this->findCurrentCleanupBranch();
+        }
+
         $this->info("Getting the common ancestor of the current branch and the cleanup branch.");
-        $commonAncestor = $this->runProcess("git merge-base HEAD $branch");
+        $commonAncestor = $this->getCommonAncestor($branch);
 
         $this->info("Getting the files that have been changed by the current branch.");
-        $currentBranchFiles = $this->runProcess("git diff --name-only $commonAncestor HEAD");
+        $currentBranchFiles = $this->getFilesThatAreChangedBetween($commonAncestor, 'HEAD');
 
         $this->info("Getting the files that have been changed by the cleanup branch.");
-        $cleanupBranchFiles = $this->runProcess("git diff --name-only $commonAncestor $branch");
-
-        $currentBranchFiles = explode("\n", $currentBranchFiles);
-        $cleanupBranchFiles = explode("\n", $cleanupBranchFiles);
+        $cleanupBranchFiles = $this->getFilesThatAreChangedBetween($commonAncestor, $branch);
 
         $files = collect(array_intersect($currentBranchFiles, $cleanupBranchFiles))->unique();
 
@@ -86,6 +89,29 @@ trait ManagesCleanupBranches
         $this->info(collect($files)->join("\n"));
 
         return $files->toArray();
+    }
+
+    public function getFilesThatAreChangedByCleanupBranch(): array
+    {
+        $branch = $this->findCurrentCleanupBranch();
+
+        $commonAncestor = $this->getCommonAncestor($branch);
+
+        return $this->getFilesThatAreChangedBetween($commonAncestor, $branch);
+    }
+
+    public function getFilesThatAreChangedBetween($start, $end): array
+    {
+        $files = $this->runProcess("git diff --name-only $start $end");
+
+        if (!$this->silent) $this->info($files);
+
+        return explode("\n", $files);
+    }
+
+    public function getCommonAncestor($branch): string
+    {
+        return $this->runProcess("git merge-base HEAD $branch");
     }
 
     /**
