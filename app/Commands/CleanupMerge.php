@@ -3,9 +3,11 @@
 namespace App\Commands;
 
 use App\Services\ManagesCleanupBranches;
+use Exception;
 use Illuminate\Console\Scheduling\Schedule;
 use LaravelZero\Framework\Commands\Command;
 
+/** @package App\Commands */
 class CleanupMerge extends Command
 {
     use ManagesCleanupBranches;
@@ -32,14 +34,39 @@ class CleanupMerge extends Command
     public function handle()
     {
         $branch = $this->findCurrentCleanupBranch();
-        $files = $this->getFilesThatAreChangedByBothBranches($branch);
+        $conflictingFiles = $this->getFilesThatWillConflictWithBranch($branch);
+        print "\n" . collect($conflictingFiles)->keys()->implode("\n") . "\n";
+        $allFiles = $this->getFilesThatAreChangedByBothBranches($branch);
+        $nonConflictingFiles = array_diff($allFiles, array_keys($conflictingFiles));
+        print "\n" . collect($nonConflictingFiles)->implode("\n") . "\n";
 
-        // For each file, we need to basically get the diff between the current branch and the cleanup branch,
-        // and stage the changes as if it were a merge conflict.
+        // For the conflicting files, we should simply apply the file contents we got.
+        foreach ($conflictingFiles as $file => $contents) {
+            $this->info("Applying {$file}.");
+            file_put_contents($file, $contents);
+            $this->runProcess("git add {$file}");
+        }
+
+        // For the non-conflicting files, we should merge them.
+        $this->mergeFiles($branch, $nonConflictingFiles);
+    }
+
+    /**
+     * @param mixed $branch
+     * @param mixed $files
+     * @return void
+     * @throws Exception
+     */
+    public function mergeFiles($branch, $files): void
+    {
         foreach ($files as $file) {
             $this->info("Merging {$file}.");
-            $this->runProcess("git checkout $branch -- $file");
-            $this->runProcess("git add $file");
+
+            // Checkout the file from the cleanup branch.
+            $this->runProcess("git checkout {$branch} -- {$file}");
+
+            // Add the file to the staging area.
+            $this->runProcess("git add {$file}");
         }
     }
 

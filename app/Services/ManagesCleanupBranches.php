@@ -27,7 +27,11 @@ trait ManagesCleanupBranches
         return $output;
     }
 
-    public function getFilesThatWillConflictWithBranch($branch, $reset = true): array
+    /**
+     * Get the list of files that will have merge conflicts with the next active cleanup branch, as an array of key-
+     * value pairs, where the key is the file name, and the value is the file's contents having the merge conflicts.
+     */
+    public function getFilesThatWillConflictWithBranch($branch): array
     {
         $this->info("Getting latest updates for the next active cleanup branch.");
         $this->runProcess("git fetch origin $branch");
@@ -48,13 +52,15 @@ trait ManagesCleanupBranches
             $this->info("No merge conflicts found.");
         }
 
+        // Get each file's contents.
+        $conflictingFiles = collect(explode("\n", $conflictingFiles))->mapWithKeys(function ($file) {
+            return [$file => $this->runProcess("cat {$file}")];
+        });
 
-        if ($reset) {
-            $this->info("Resetting the current branch.");
-            $this->runProcess("git reset --hard HEAD");
-        }
+        $this->info("Resetting the current branch.");
+        $this->runProcess("git reset --hard HEAD");
 
-        return explode("\n", $conflictingFiles);
+        return $conflictingFiles->toArray();
     }
 
     public function getFilesThatAreChangedByBothBranches($branch): array
@@ -74,11 +80,11 @@ trait ManagesCleanupBranches
         $currentBranchFiles = explode("\n", $currentBranchFiles);
         $cleanupBranchFiles = explode("\n", $cleanupBranchFiles);
 
-        $files = array_intersect($currentBranchFiles, $cleanupBranchFiles);
+        $files = collect(array_intersect($currentBranchFiles, $cleanupBranchFiles))->unique();
 
         $this->info("The following files have been changed by both the current branch and the cleanup branch:");
         $this->info(collect($files)->join("\n"));
 
-        return $files;
+        return $files->toArray();
     }
 }
