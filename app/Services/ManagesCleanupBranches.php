@@ -87,4 +87,23 @@ trait ManagesCleanupBranches
 
         return $files->toArray();
     }
+
+    /**
+     * @param mixed $branch
+     * @param mixed $files
+     * @return void
+     * @throws Exception
+     */
+    public function mergeFiles($branch, $files): void
+    {
+        foreach ($files as $file) {
+            $this->info("Merging {$file}.");
+
+            // Checkout the file from the cleanup branch.
+            $this->runProcess("git checkout {$branch} -- {$file}");
+
+            // Add the file to the staging area.
+            $this->runProcess("git add {$file}");
+        }
+    }
 }
