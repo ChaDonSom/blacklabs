@@ -19,7 +19,7 @@ trait ManagesCleanupBranches
 
         $output = collect(explode("\n", $output))->map(function ($branch) {
             return (object) [
-                'branch' => $branch,
+                'branch' => Str::of($branch)->whenContains('*', fn($str) => $str->replace('*', ''))->trim(),
                 'sequence' => Str::of($branch)->after('big-cleanup-')->before('-'),
             ];
         })->sortBy('sequence')->first()->branch;
