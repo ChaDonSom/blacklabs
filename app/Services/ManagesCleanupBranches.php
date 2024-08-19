@@ -27,7 +27,7 @@ trait ManagesCleanupBranches
         return $output;
     }
 
-    public function getFilesThatWillConflictWithBranch($branch, $reset = true, $keep = false)
+    public function getFilesThatWillConflictWithBranch($branch, $reset = true): array
     {
         $this->info("Getting latest updates for the next active cleanup branch.");
         $this->runProcess("git fetch origin $branch");
@@ -52,39 +52,33 @@ trait ManagesCleanupBranches
         if ($reset) {
             $this->info("Resetting the current branch.");
             $this->runProcess("git reset --hard HEAD");
-        } else if ($conflictingFiles) {
-            if ($keep) {
-                $this->info("Keeping non-conflicting files.");
-                // Do nothing
-            } else {
-                $this->info("Removing non-conflicting files.");
-
-                // Get the list of non-conflicting files
-                $nonConflictingFiles = $this->runProcess("git status --porcelain | grep -v '^UU' | awk '{print $2}'");
-                $this->info($nonConflictingFiles);
-                $nonConflictingFiles = collect(explode("\n", $nonConflictingFiles))->map(function ($file) {
-                    return trim($file);
-                })->filter(function ($file) {
-                    return $file;
-                });
-
-                $this->info("Removing {$nonConflictingFiles->count()} non-conflicting files.");
-
-                // Unstage deletions and discard changes for modified files
-                $nonConflictingFiles->each(function ($file) {
-                    try {
-                        if (!empty($file)) {
-                            $this->runProcess('git restore --staged ' . $file);
-                            $this->runProcess('git checkout -- ' . $file);
-                        }
-                    } catch (\Exception $e) {
-                        $this->error("Failed to process file: $file");
-                        $this->error($e->getMessage());
-                    }
-                });
-            }
         }
 
-        return $conflictingFiles;
+        return explode("\n", $conflictingFiles);
+    }
+
+    public function getFilesThatAreChangedByBothBranches($branch): array
+    {
+        // We do a diff from the common ancestor of both branches, to the head of both brenches. We compare the
+        // files that are different between the two branches, and return the list of files that are different.
+
+        $this->info("Getting the common ancestor of the current branch and the cleanup branch.");
+        $commonAncestor = $this->runProcess("git merge-base HEAD $branch");
+
+        $this->info("Getting the files that have been changed by the current branch.");
+        $currentBranchFiles = $this->runProcess("git diff --name-only $commonAncestor HEAD");
+
+        $this->info("Getting the files that have been changed by the cleanup branch.");
+        $cleanupBranchFiles = $this->runProcess("git diff --name-only $commonAncestor $branch");
+
+        $currentBranchFiles = explode("\n", $currentBranchFiles);
+        $cleanupBranchFiles = explode("\n", $cleanupBranchFiles);
+
+        $files = array_intersect($currentBranchFiles, $cleanupBranchFiles);
+
+        $this->info("The following files have been changed by both the current branch and the cleanup branch:");
+        $this->info(collect($files)->join("\n"));
+
+        return $files;
     }
 }

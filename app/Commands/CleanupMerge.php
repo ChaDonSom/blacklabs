@@ -32,7 +32,15 @@ class CleanupMerge extends Command
     public function handle()
     {
         $branch = $this->findCurrentCleanupBranch();
-        $files = $this->getFilesThatWillConflictWithBranch($branch, false, $this->option('keep'));
+        $files = $this->getFilesThatAreChangedByBothBranches($branch);
+
+        // For each file, we need to basically get the diff between the current branch and the cleanup branch,
+        // and stage the changes as if it were a merge conflict.
+        foreach ($files as $file) {
+            $this->info("Merging {$file}.");
+            $this->runProcess("git checkout $branch -- $file");
+            $this->runProcess("git add $file");
+        }
     }
 
     /**

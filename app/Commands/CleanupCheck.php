@@ -39,10 +39,10 @@ class CleanupCheck extends Command
 
         $this->info("The next active cleanup branch is: {$branch}");
 
-        $output = $this->getFilesThatWillConflictWithBranch($branch);
+        $output = $this->getFilesThatAreChangedByBothBranches($branch);
 
         $this->info("Cleanup check complete.");
-        $this->info($output);
+        $this->info(collect($output)->join("\n"));
         return 1;
     }
 }
