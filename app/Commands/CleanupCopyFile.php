@@ -37,7 +37,12 @@ class CleanupCopyFile extends Command
         $this->info("Getting the latest updates for the next active cleanup branch.");
         $this->runProcess("git fetch origin $branch");
 
-        $this->mergeFiles($branch, [$file]);
+        $conflictingFiles = $this->getFilesThatWillConflictWithBranch($branch);
+        if (array_key_exists($file, $conflictingFiles)) {
+            $this->applyMergeConflictFiles($branch, [$conflictingFiles[$file]]);
+        } else {
+            $this->copyFiles($branch, [$file]);
+        }
     }
 
     /**

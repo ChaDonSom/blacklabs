@@ -41,14 +41,10 @@ class CleanupMerge extends Command
         print "\n" . collect($nonConflictingFiles)->implode("\n") . "\n";
 
         // For the conflicting files, we should simply apply the file contents we got.
-        foreach ($conflictingFiles as $file => $contents) {
-            $this->info("Applying {$file}.");
-            file_put_contents($file, $contents);
-            $this->runProcess("git add {$file}");
-        }
+        $this->applyMergeConflictFiles($branch, $conflictingFiles);
 
         // For the non-conflicting files, we should merge them.
-        $this->mergeFiles($branch, $nonConflictingFiles);
+        $this->copyFiles($branch, $nonConflictingFiles);
     }
 
     /**

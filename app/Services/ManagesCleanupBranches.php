@@ -94,7 +94,7 @@ trait ManagesCleanupBranches
      * @return void
      * @throws Exception
      */
-    public function mergeFiles($branch, $files): void
+    public function copyFiles($branch, $files): void
     {
         foreach ($files as $file) {
             $this->info("Merging {$file}.");
@@ -103,6 +103,15 @@ trait ManagesCleanupBranches
             $this->runProcess("git checkout {$branch} -- {$file}");
 
             // Add the file to the staging area.
+            $this->runProcess("git add {$file}");
+        }
+    }
+
+    public function applyMergeConflictFiles($files): void
+    {
+        foreach ($files as $file => $contents) {
+            $this->info("Applying {$file}.");
+            file_put_contents($file, $contents);
             $this->runProcess("git add {$file}");
         }
     }
