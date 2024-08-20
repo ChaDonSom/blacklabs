@@ -80,7 +80,8 @@ class CleanupMerge extends Command
         $bothFiles = $this->getFilesThatAreChangedByBothBranches($branch);
         // For the files that are changed by both branches, we should copy the files from the cleanup branch (now
         // that it's been merged with the current branch)
-        // $this->copyFiles($tempBranch, $bothFiles);
+        $this->info("Files changed by both branches: \n" . collect($bothFiles)->join("\n"));
+        $this->copyFiles($tempBranch, $bothFiles);
 
         $this->info("Merging referenced files.");
         // We should also find the files that the current branch has modified, find the files they reference of the
@@ -97,14 +98,15 @@ class CleanupMerge extends Command
             // if (count($refs)) $this->info("References from $file in current branch: \n" . collect($refs)->join("\n"));
             return collect($refs)->filter(function ($ref) use ($file, $cleanupFiles) {
                 $isInBoth = in_array($ref, $cleanupFiles);
-                if (!$isInBoth) $this->warn("File $file references $ref, which is not changed in the cleanup branch.");
+                // if (!$isInBoth) $this->warn("File $file references $ref, which is not changed in the cleanup branch.");
                 return $isInBoth;
             });
         })->flatten()->unique()->toArray();
 
         $allReferences = array_merge($cleanupFilesReferencedByFilesBothChanged, $cleanupFilesReferencedByCurrentFiles);
         if (count($allReferences)) {
-            // $this->copyFiles($tempBranch, $allReferences);
+            if (count($allReferences)) $this->info("All references: \n" . collect($allReferences)->join("\n"));
+            $this->copyFiles($tempBranch, $allReferences);
         }
 
         // 6. Delete the copy of the cleanup branch.
