@@ -23,7 +23,7 @@ class CleanupCheck extends Command
      *
      * @var string
      */
-    protected $description = 'Outputs the list of files that will have merge conflicts with the next active cleanup branch.';
+    protected $description = 'Outputs the list of files that the next active cleanup branch has changed, that the current branch has also changed.';
 
     /**
      * Execute the console command.
@@ -32,14 +32,13 @@ class CleanupCheck extends Command
      */
     public function handle()
     {
-        $this->info("Checking for merge conflicts with the next active cleanup branch.");
-
-        $this->info("Finding the current cleanup branch.");
         $branch = $this->findCurrentCleanupBranch();
 
-        $this->info("The next active cleanup branch is: {$branch}");
+        $this->info("Active cleanup branch: {$branch}");
 
-        $this->getFilesThatAreChangedByBothBranches($branch);
-        return 1;
+        $files = $this->getFilesThatAreChangedByBothBranches($branch);
+
+        $this->info("Files: ");
+        $this->info(collect($files)->join("\n"));
     }
 }
