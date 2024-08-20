@@ -10,7 +10,12 @@ trait FindsReferencesBetweenFiles
 
     public function getReferencesToFiles($file, $files): array
     {
-        $fileContents = file_get_contents($file);
+        try {
+            $fileContents = file_get_contents($file);
+        } catch (\Exception $e) {
+            $this->error("Could not read the file: $file");
+            return [];
+        }
 
         // Get the Vite aliases.
         $aliases = $this->getViteAliases();

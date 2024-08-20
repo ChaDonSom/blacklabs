@@ -8,8 +8,6 @@ trait ManagesCleanupBranches
 {
     use RunsProcesses;
 
-    public $silent = false;
-
     public function findCurrentCleanupBranch()
     {
         $output = $this->runProcess("git branch | grep \"big-cleanup\"");
@@ -35,31 +33,20 @@ trait ManagesCleanupBranches
      */
     public function getFilesThatWillConflictWithBranch($branch): array
     {
-        $this->info("Getting latest updates for the next active cleanup branch.");
         $this->runProcess("git fetch origin $branch");
 
-        $this->info("Merging the next active cleanup branch into the current branch.");
         try {
             $this->runProcess("git merge $branch --no-commit --no-ff");
         } catch (\Exception $e) {
         }
 
-        $this->info("Checking for merge conflicts.");
         $conflictingFiles = $this->runProcess("git diff --name-only --diff-filter=U");
-
-        if ($conflictingFiles) {
-            $this->info("The following files will have merge conflicts with the next active cleanup branch:");
-            $this->info($conflictingFiles);
-        } else {
-            $this->info("No merge conflicts found.");
-        }
 
         // Get each file's contents.
         $conflictingFiles = collect(explode("\n", $conflictingFiles))->mapWithKeys(function ($file) {
             return [$file => $this->runProcess("cat {$file}")];
         });
 
-        $this->info("Resetting the current branch.");
         $this->runProcess("git reset --hard HEAD");
 
         return $conflictingFiles->toArray();
@@ -74,19 +61,13 @@ trait ManagesCleanupBranches
             $branch = $this->findCurrentCleanupBranch();
         }
 
-        $this->info("Getting the common ancestor of the current branch and the cleanup branch.");
         $commonAncestor = $this->getCommonAncestor($branch);
 
-        $this->info("Getting the files that have been changed by the current branch.");
         $currentBranchFiles = $this->getFilesThatAreChangedBetween($commonAncestor, 'HEAD');
 
-        $this->info("Getting the files that have been changed by the cleanup branch.");
         $cleanupBranchFiles = $this->getFilesThatAreChangedBetween($commonAncestor, $branch);
 
         $files = collect(array_intersect($currentBranchFiles, $cleanupBranchFiles))->unique();
-
-        $this->info("The following files have been changed by both the current branch and the cleanup branch:");
-        $this->info(collect($files)->join("\n"));
 
         return $files->toArray();
     }
@@ -100,11 +81,18 @@ trait ManagesCleanupBranches
         return $this->getFilesThatAreChangedBetween($commonAncestor, $branch);
     }
 
+    public function getFilesThatAreChangedByCurrentBranch(): array
+    {
+        $branch = $this->findCurrentCleanupBranch();
+
+        $commonAncestor = $this->getCommonAncestor($branch);
+
+        return $this->getFilesThatAreChangedBetween($commonAncestor, 'HEAD');
+    }
+
     public function getFilesThatAreChangedBetween($start, $end): array
     {
         $files = $this->runProcess("git diff --name-only $start $end");
-
-        if (!$this->silent) $this->info($files);
 
         return explode("\n", $files);
     }
@@ -123,20 +111,18 @@ trait ManagesCleanupBranches
     public function copyFiles($branch, $files): void
     {
         foreach ($files as $file) {
-            $this->info("Merging {$file}.");
-
-            // Checkout the file from the cleanup branch.
-            $this->runProcess("git checkout {$branch} -- {$file}");
-
-            // Add the file to the staging area.
-            $this->runProcess("git add {$file}");
+            try {
+                $this->runProcess("git checkout {$branch} -- {$file}");
+                $this->runProcess("git add {$file}");
+            } catch (\Exception $e) {
+                $this->error("Failed to find file in git: {$file}");
+            }
         }
     }
 
     public function applyMergeConflictFiles($files): void
     {
-        foreach ($files as $file => $contents) {
-            $this->info("Applying {$file}.");
+        foreach (collect($files)->filter() as $file => $contents) {
             file_put_contents($file, $contents);
             $this->runProcess("git add {$file}");
         }

@@ -41,11 +41,10 @@ class CleanupCheckFileForReferences extends Command
         $this->info("The next active cleanup branch is: {$branch}");
 
         $this->info("Getting the list of files that have been changed in the next active cleanup branch.");
-        $this->silent = true;
         $cleanupBranchFiles = $this->getFilesThatAreChangedByCleanupBranch();
 
         $this->info("Checking for references to the cleanup branch's files from the given file.");
-        $references = $this->getReferencesToFiles($file, $cleanupBranchFiles, true);
+        $references = $this->getReferencesToFiles($file, $cleanupBranchFiles);
 
         if ($references) {
             $this->info("The given file references the following files:");
