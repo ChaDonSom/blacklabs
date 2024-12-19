@@ -9,13 +9,26 @@ trait GetsConsoleSites
     public function getConsoleSites(\Illuminate\Http\Client\PendingRequest $request, $force = false)
     {
         $fileName = app()->runningUnitTests() ? 'forge-sites-test.json' : 'forge-sites.json';
+        $siteNamesFileName = app()->runningUnitTests() ? 'forge-site-names-test.json' : 'forge-site-names.json';
         // If $fileName is new enough, use it
         if (
             Storage::exists($fileName)
             && Storage::lastModified($fileName) > (now()->subSeconds(20)->valueOf() / 1000)
             && !$force
         ) {
+            $this->info('Got sites from 20-second storage');
             return collect(json_decode(Storage::get($fileName)));
+        }
+
+        if (
+            Storage::exists($siteNamesFileName)
+            && Storage::lastModified($siteNamesFileName) > (now()->subDays(1)->valueOf() / 1000)
+            && !$force
+        ) {
+            $siteNames = collect(json_decode(Storage::get($siteNamesFileName)));
+            $siteNames = $siteNames->mapWithKeys(fn($value, $key) => [$key => (object) ['name' => $value, 'id' => $key]]);
+            $this->info('Got site names from daily storage');
+            return $siteNames;
         }
 
         $servers = $request->get('https://forge.laravel.com/api/v1/servers')->getBody()->getContents();
@@ -29,6 +42,13 @@ trait GetsConsoleSites
             return collect(json_decode($result)->sites);
         })));
 
-        return collect(json_decode(Storage::get($fileName)));
+        $gotFromStorage = collect(json_decode(Storage::get($fileName)));
+
+        Storage::put($siteNamesFileName, json_encode($servers->flatMap(function ($server) use ($gotFromStorage) {
+            $result = $gotFromStorage->where('server_id', $server->id);
+            return collect($result)->mapWithKeys(fn($site) => [$site->id => $site->name]);
+        })));
+
+        return $gotFromStorage;
     }
 }
