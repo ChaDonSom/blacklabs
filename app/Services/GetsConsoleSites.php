@@ -39,7 +39,11 @@ trait GetsConsoleSites
         Storage::put($fileName, json_encode(collect($servers)->flatMap(function ($server) use ($request) {
             $result = $request->get('https://forge.laravel.com/api/v1/servers/' . $server->id . '/sites')
                 ->getBody()->getContents();
-            return collect(json_decode($result)->sites);
+            return collect(json_decode($result)->sites)
+                ->map(function ($site) use ($server) {
+                    $site->server_id = $server->id;
+                    return $site;
+                });
         })));
 
         $gotFromStorage = collect(json_decode(Storage::get($fileName)));
