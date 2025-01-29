@@ -43,7 +43,7 @@ class UpdateSiteBranchAndDeploy extends Command
         $this->client = $this->getForgeHttpRequest();
 
         // Get the site from forge API by getting servers, then sites, then filtering by site name
-        $sites = $this->getConsoleSites($this->client);
+        $sites = $this->getConsoleSites($this->client, true);
         Log::debug('Sites:', [$sites]);
 
         // Ask for the site and provide options from forge's API
@@ -51,9 +51,9 @@ class UpdateSiteBranchAndDeploy extends Command
             label: 'Which site would you like to update and deploy?',
             options: function (string $input) use ($sites) {
                 return $sites
-                    ->map(fn ($s) => $s->name)
-                    ->filter(fn ($name) => str_contains(strtolower($name), strtolower($input)))
-                    ->keyBy(fn ($name) => $name)
+                    ->map(fn($s) => $s->name)
+                    ->filter(fn($name) => str_contains(strtolower($name), strtolower($input)))
+                    ->keyBy(fn($name) => $name)
                     ->toArray();
             },
             scroll: 10,
