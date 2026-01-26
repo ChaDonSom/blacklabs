@@ -21,9 +21,18 @@ trait UsesGitHubCLI
                 return null;
             }
 
+            // Validate issue number is actually a number to prevent injection
+            if (! is_numeric($issueNumber)) {
+                return null;
+            }
+
             // Use GitHub GraphQL API to get linked branches for the issue
             // Write query to a temporary file to avoid command injection
             $queryFile = tempnam(sys_get_temp_dir(), 'gh_query_');
+            if ($queryFile === false) {
+                return null;
+            }
+
             file_put_contents($queryFile, <<<'GRAPHQL'
 query($owner: String!, $repo: String!, $issueNumber: Int!) {
   repository(owner: $owner, name: $repo) {
@@ -43,13 +52,8 @@ query($owner: String!, $repo: String!, $issueNumber: Int!) {
 GRAPHQL);
 
             try {
-                // Validate issue number is actually a number to prevent injection
-                if (! is_numeric($issueNumber)) {
-                    return null;
-                }
-
                 $result = $this->runProcess(
-                    "gh api graphql -f query=@{$queryFile} -F owner={$owner} -F repo={$repo} -F issueNumber={$issueNumber} --jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
+                    'gh api graphql -f query=@'.escapeshellarg($queryFile).' -F owner='.escapeshellarg($owner).' -F repo='.escapeshellarg($repo).' -F issueNumber='.escapeshellarg($issueNumber)." --jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
                 );
 
                 return $this->validateAndReturnResult($result);
@@ -77,9 +81,16 @@ GRAPHQL);
                 return null;
             }
 
+            // Ensure branch name is in the format refs/heads/{branch}
+            $qualifiedBranchName = str_starts_with($branchName, 'refs/') ? $branchName : "refs/heads/{$branchName}";
+
             // Use GitHub GraphQL API to search for issues linked to this branch
             // Write query to a temporary file to avoid command injection
             $queryFile = tempnam(sys_get_temp_dir(), 'gh_query_');
+            if ($queryFile === false) {
+                return null;
+            }
+
             file_put_contents($queryFile, <<<'GRAPHQL'
 query($owner: String!, $repo: String!, $branchName: String!) {
   repository(owner: $owner, name: $repo) {
@@ -99,11 +110,8 @@ query($owner: String!, $repo: String!, $branchName: String!) {
 GRAPHQL);
 
             try {
-                // Ensure branch name is in the format refs/heads/{branch}
-                $qualifiedBranchName = str_starts_with($branchName, 'refs/') ? $branchName : "refs/heads/{$branchName}";
-
                 $result = $this->runProcess(
-                    "gh api graphql -f query=@{$queryFile} -F owner={$owner} -F repo={$repo} -F branchName={$qualifiedBranchName} --jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
+                    'gh api graphql -f query=@'.escapeshellarg($queryFile).' -F owner='.escapeshellarg($owner).' -F repo='.escapeshellarg($repo).' -F branchName='.escapeshellarg($qualifiedBranchName)." --jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
                 );
 
                 return $this->validateAndReturnResult($result);
