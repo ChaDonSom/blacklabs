@@ -16,8 +16,15 @@ trait UsesGitHubCLI
     public function getBranchForIssue($issueNumber): ?string
     {
         try {
+            [$owner, $repo] = $this->getGitHubOwnerAndRepo();
+            if (! $owner || ! $repo) {
+                return null;
+            }
+
             // Use GitHub GraphQL API to get linked branches for the issue
-            $query = <<<'GRAPHQL'
+            // Write query to a temporary file to avoid command injection
+            $queryFile = tempnam(sys_get_temp_dir(), 'gh_query_');
+            file_put_contents($queryFile, <<<'GRAPHQL'
 query($owner: String!, $repo: String!, $issueNumber: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $issueNumber) {
@@ -33,23 +40,22 @@ query($owner: String!, $repo: String!, $issueNumber: Int!) {
     }
   }
 }
-GRAPHQL;
+GRAPHQL);
 
-            // Get the repository owner and name from the current git remote
-            $remote = $this->runProcess('git config --get remote.origin.url');
-            if (! preg_match('/github\.com[\/:]([^\/]+)\/([^\/\.]+)(\.git)?/', $remote, $matches)) {
-                return null;
+            try {
+                // Validate issue number is actually a number to prevent injection
+                if (! is_numeric($issueNumber)) {
+                    return null;
+                }
+
+                $result = $this->runProcess(
+                    "gh api graphql -f query=@{$queryFile} -F owner={$owner} -F repo={$repo} -F issueNumber={$issueNumber} --jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
+                );
+
+                return $this->validateAndReturnResult($result);
+            } finally {
+                unlink($queryFile);
             }
-            $owner = $matches[1];
-            $repo = $matches[2];
-
-            $result = $this->runProcess(
-                "gh api graphql -f query='{$query}' -F owner='{$owner}' -F repo='{$repo}' -F issueNumber={$issueNumber} --jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
-            );
-
-            $branchName = trim($result);
-
-            return strlen($branchName) > 0 && $branchName !== 'null' ? $branchName : null;
         } catch (\Exception $e) {
             // GitHub CLI not available or not authenticated, or no linked branch found
             return null;
@@ -66,8 +72,15 @@ GRAPHQL;
     public function getIssueForBranch(string $branchName): ?string
     {
         try {
+            [$owner, $repo] = $this->getGitHubOwnerAndRepo();
+            if (! $owner || ! $repo) {
+                return null;
+            }
+
             // Use GitHub GraphQL API to search for issues linked to this branch
-            $query = <<<'GRAPHQL'
+            // Write query to a temporary file to avoid command injection
+            $queryFile = tempnam(sys_get_temp_dir(), 'gh_query_');
+            file_put_contents($queryFile, <<<'GRAPHQL'
 query($owner: String!, $repo: String!, $branchName: String!) {
   repository(owner: $owner, name: $repo) {
     ref(qualifiedName: $branchName) {
@@ -83,29 +96,55 @@ query($owner: String!, $repo: String!, $branchName: String!) {
     }
   }
 }
-GRAPHQL;
+GRAPHQL);
 
-            // Get the repository owner and name from the current git remote
-            $remote = $this->runProcess('git config --get remote.origin.url');
-            if (! preg_match('/github\.com[\/:]([^\/]+)\/([^\/\.]+)(\.git)?/', $remote, $matches)) {
-                return null;
+            try {
+                // Ensure branch name is in the format refs/heads/{branch}
+                $qualifiedBranchName = str_starts_with($branchName, 'refs/') ? $branchName : "refs/heads/{$branchName}";
+
+                $result = $this->runProcess(
+                    "gh api graphql -f query=@{$queryFile} -F owner={$owner} -F repo={$repo} -F branchName={$qualifiedBranchName} --jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
+                );
+
+                return $this->validateAndReturnResult($result);
+            } finally {
+                unlink($queryFile);
             }
-            $owner = $matches[1];
-            $repo = $matches[2];
-
-            // Ensure branch name is in the format refs/heads/{branch}
-            $qualifiedBranchName = str_starts_with($branchName, 'refs/') ? $branchName : "refs/heads/{$branchName}";
-
-            $result = $this->runProcess(
-                "gh api graphql -f query='{$query}' -F owner='{$owner}' -F repo='{$repo}' -F branchName='{$qualifiedBranchName}' --jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
-            );
-
-            $issueNumber = trim($result);
-
-            return strlen($issueNumber) > 0 && $issueNumber !== 'null' ? $issueNumber : null;
         } catch (\Exception $e) {
             // GitHub CLI not available or not authenticated, or no linked issue found
             return null;
         }
+    }
+
+    /**
+     * Extract GitHub owner and repo from git remote URL.
+     *
+     * @return array{0: string|null, 1: string|null}
+     */
+    private function getGitHubOwnerAndRepo(): array
+    {
+        try {
+            $remote = $this->runProcess('git config --get remote.origin.url');
+            if (preg_match('/github\.com[\/:]([^\/]+)\/([^\/\.]+)(\.git)?/', $remote, $matches)) {
+                return [$matches[1], $matches[2]];
+            }
+        } catch (\Exception $e) {
+            // Unable to get git remote
+        }
+
+        return [null, null];
+    }
+
+    /**
+     * Validate and return the result from GitHub CLI.
+     *
+     * @param  string  $result  The raw result from gh CLI
+     * @return string|null The validated result or null
+     */
+    private function validateAndReturnResult(string $result): ?string
+    {
+        $trimmed = trim($result);
+
+        return strlen($trimmed) > 0 && $trimmed !== 'null' ? $trimmed : null;
     }
 }
