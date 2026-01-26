@@ -53,7 +53,12 @@ GRAPHQL);
 
             try {
                 $result = $this->runProcess(
-                    'gh api graphql -f query=@'.escapeshellarg($queryFile).' -F owner='.escapeshellarg($owner).' -F repo='.escapeshellarg($repo).' -F issueNumber='.escapeshellarg($issueNumber)." --jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
+                    'gh api graphql '.
+                    '-f query=@'.escapeshellarg($queryFile).' '.
+                    '-F owner='.escapeshellarg($owner).' '.
+                    '-F repo='.escapeshellarg($repo).' '.
+                    '-F issueNumber='.escapeshellarg($issueNumber).' '.
+                    "--jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
                 );
 
                 return $this->validateAndReturnResult($result);
@@ -111,7 +116,12 @@ GRAPHQL);
 
             try {
                 $result = $this->runProcess(
-                    'gh api graphql -f query=@'.escapeshellarg($queryFile).' -F owner='.escapeshellarg($owner).' -F repo='.escapeshellarg($repo).' -F branchName='.escapeshellarg($qualifiedBranchName)." --jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
+                    'gh api graphql '.
+                    '-f query=@'.escapeshellarg($queryFile).' '.
+                    '-F owner='.escapeshellarg($owner).' '.
+                    '-F repo='.escapeshellarg($repo).' '.
+                    '-F branchName='.escapeshellarg($qualifiedBranchName).' '.
+                    "--jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
                 );
 
                 return $this->validateAndReturnResult($result);
@@ -126,6 +136,8 @@ GRAPHQL);
 
     /**
      * Extract GitHub owner and repo from git remote URL.
+     * Supports both HTTPS (https://github.com/owner/repo.git) and
+     * SSH (git@github.com:owner/repo.git) URL formats.
      *
      * @return array{0: string|null, 1: string|null}
      */
@@ -133,6 +145,7 @@ GRAPHQL);
     {
         try {
             $remote = $this->runProcess('git config --get remote.origin.url');
+            // Match both HTTPS and SSH GitHub URLs
             if (preg_match('/github\.com[\/:]([^\/]+)\/([^\/\.]+)(\.git)?/', $remote, $matches)) {
                 return [$matches[1], $matches[2]];
             }
