@@ -52,13 +52,15 @@ query($owner: String!, $repo: String!, $issueNumber: Int!) {
 GRAPHQL);
 
             try {
+                $jqExpression = '.data.repository.issue.linkedBranches.nodes[0].ref.name';
+
                 $result = $this->runProcess(
                     'gh api graphql '.
                     '-f query=@'.escapeshellarg($queryFile).' '.
                     '-F owner='.escapeshellarg($owner).' '.
                     '-F repo='.escapeshellarg($repo).' '.
                     '-F issueNumber='.escapeshellarg($issueNumber).' '.
-                    "--jq '.data.repository.issue.linkedBranches.nodes[0].ref.name'"
+                    '--jq '.escapeshellarg($jqExpression)
                 );
 
                 return $this->validateAndReturnResult($result);
@@ -115,13 +117,15 @@ query($owner: String!, $repo: String!, $branchName: String!) {
 GRAPHQL);
 
             try {
+                $jqExpression = '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number';
+
                 $result = $this->runProcess(
                     'gh api graphql '.
                     '-f query=@'.escapeshellarg($queryFile).' '.
                     '-F owner='.escapeshellarg($owner).' '.
                     '-F repo='.escapeshellarg($repo).' '.
                     '-F branchName='.escapeshellarg($qualifiedBranchName).' '.
-                    "--jq '.data.repository.ref.associatedPullRequests.nodes[0].closingIssuesReferences.nodes[0].number'"
+                    '--jq '.escapeshellarg($jqExpression)
                 );
 
                 return $this->validateAndReturnResult($result);

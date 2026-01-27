@@ -78,16 +78,25 @@ class RemergeReleaseBranch extends Command
         // Find the issue branches from the issue numbers
         $issueBranches = $this->findIssueBranches(explode(',', $issues));
 
+        // Validate the release branch name to avoid shell command injection
+        // Allow only typical safe characters for branch names: letters, numbers, dots, slashes, underscores, and hyphens
+        if (! preg_match('/^[A-Za-z0-9._\/-]+$/', $releaseBranch)) {
+            $this->error("Invalid release branch name: {$releaseBranch}");
+            $this->error('Release branch names can only contain letters, numbers, dots, slashes, underscores, and hyphens.');
+
+            return;
+        }
+
         // Check out the release branch
         $this->info("Checking out the release branch {$releaseBranch}...");
         $wasAlreadyOnReleaseBranch = $this->isOnBranch($releaseBranch);
         if (! $wasAlreadyOnReleaseBranch) {
-            $this->runProcess('git checkout '.$releaseBranch);
+            $this->runProcess('git checkout '.escapeshellarg($releaseBranch));
         }
 
         // Make sure we're up to date with the remote release branch
         $this->info('Pulling the latest changes from the release branch...');
-        $this->runProcess("git pull origin {$releaseBranch}");
+        $this->runProcess('git pull origin '.escapeshellarg($releaseBranch));
 
         // Merge the issue branches into the release branch
         $this->info("Merging the issue branches into the release branch {$releaseBranch}...");
@@ -115,7 +124,7 @@ class RemergeReleaseBranch extends Command
 
         // Push the branch and the tags
         $this->info('Pushing the branch and the tag...');
-        $this->runProcess("git push origin {$releaseBranch} --follow-tags");
+        $this->runProcess('git push origin '.escapeshellarg($releaseBranch).' --follow-tags');
 
         // Check back out to the original branch
         if (! $wasAlreadyOnReleaseBranch) {
