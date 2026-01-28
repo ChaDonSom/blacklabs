@@ -81,9 +81,9 @@ class DeployToProduction extends Command
             if ($currentParts && $newParts) {
                 if ($newParts['major'] > $currentParts['major']) {
                     $versionBump = 'major';
-                } elseif ($newParts['minor'] > $currentParts['minor']) {
+                } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] > $currentParts['minor']) {
                     $versionBump = 'minor';
-                } elseif ($newParts['patch'] > $currentParts['patch']) {
+                } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] === $currentParts['minor'] && $newParts['patch'] > $currentParts['patch']) {
                     $versionBump = 'patch';
                 }
                 Log::debug("Version bump: $versionBump");
