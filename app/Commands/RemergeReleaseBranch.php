@@ -5,16 +5,17 @@ namespace App\Commands;
 use App\Services\FindsIssueBranches;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
-use Illuminate\Support\Facades\Log;
+use App\Services\UsesGitHubCLI;
 use LaravelZero\Framework\Commands\Command;
 
 use function Laravel\Prompts\search;
 
 class RemergeReleaseBranch extends Command
 {
-    use RunsProcesses;
     use FindsIssueBranches;
     use MergesBranches;
+    use RunsProcesses;
+    use UsesGitHubCLI;
 
     protected $signature = 'remerge-release-branch
                             {issues? : The issue branches to merge into the release branch (comma-separated)}
@@ -26,25 +27,37 @@ class RemergeReleaseBranch extends Command
         $releaseBranch = $this->argument('release-branch');
         $issues = $this->argument('issues');
 
-        if (!$issues) {
+        if (! $issues) {
             // Try get the issue from the current branch
-            $this->info("No issues given, trying to get the issue from the current branch...");
+            $this->info('No issues given, trying to get the issue from the current branch...');
             $currentBranch = $this->runProcess('git rev-parse --abbrev-ref HEAD');
-            if ($this->isIssueBranch($currentBranch)) $issues = $this->getIssueNumberFromIssueBranch($currentBranch);
+            if ($this->isIssueBranch($currentBranch)) {
+                $issues = $this->getIssueNumberFromIssueBranch($currentBranch);
+            } else {
+                // Try to find the issue using GitHub CLI
+                $this->info("Branch doesn't follow issue naming pattern. Checking GitHub for linked issue...");
+                $issueNumber = $this->getIssueForBranch($currentBranch);
+                if ($issueNumber) {
+                    $this->info("Found issue #{$issueNumber} linked to branch {$currentBranch} on GitHub.");
+                    $issues = $issueNumber;
+                }
+            }
         }
 
-        if (!$issues) {
-            $this->error("No issues given and no issue branch checked out.");
+        if (! $issues) {
+            $this->error('No issues given and no issue branch checked out.');
+
             return;
         }
 
-        if (!$releaseBranch) {
+        if (! $releaseBranch) {
             // Get the release branches that include the given issues in their names
-            $this->info("No release branch given, trying to find the release branch from the issues...");
+            $this->info('No release branch given, trying to find the release branch from the issues...');
             $releaseBranches = $this->findReleaseBranches(explode(',', $issues));
-            $this->info("Found release branches: " . implode(', ', $releaseBranches));
+            $this->info('Found release branches: '.implode(', ', $releaseBranches));
             if (count($releaseBranches) === 0) {
-                $this->error("No release branches found for the given issues.");
+                $this->error('No release branches found for the given issues.');
+
                 return;
             } elseif (count($releaseBranches) === 1) {
                 $releaseBranch = $releaseBranches[0];
@@ -65,14 +78,25 @@ class RemergeReleaseBranch extends Command
         // Find the issue branches from the issue numbers
         $issueBranches = $this->findIssueBranches(explode(',', $issues));
 
+        // Validate the release branch name to avoid shell command injection
+        // Allow only typical safe characters for branch names: letters, numbers, dots, slashes, underscores, and hyphens
+        if (! preg_match('/^[A-Za-z0-9._\/-]+$/', $releaseBranch)) {
+            $this->error("Invalid release branch name: {$releaseBranch}");
+            $this->error('Release branch names can only contain letters, numbers, dots, slashes, underscores, and hyphens.');
+
+            return;
+        }
+
         // Check out the release branch
         $this->info("Checking out the release branch {$releaseBranch}...");
         $wasAlreadyOnReleaseBranch = $this->isOnBranch($releaseBranch);
-        if (!$wasAlreadyOnReleaseBranch) $this->runProcess('git checkout ' . $releaseBranch);
+        if (! $wasAlreadyOnReleaseBranch) {
+            $this->runProcess('git checkout '.escapeshellarg($releaseBranch));
+        }
 
         // Make sure we're up to date with the remote release branch
-        $this->info("Pulling the latest changes from the release branch...");
-        $this->runProcess("git pull origin {$releaseBranch}");
+        $this->info('Pulling the latest changes from the release branch...');
+        $this->runProcess('git pull origin '.escapeshellarg($releaseBranch));
 
         // Merge the issue branches into the release branch
         $this->info("Merging the issue branches into the release branch {$releaseBranch}...");
@@ -82,28 +106,33 @@ class RemergeReleaseBranch extends Command
         // Increment the tag using npm version prerelease, then get the new tag
         $tag = '';
         try {
-            $this->runProcess("npm version prerelease");
+            $this->runProcess('npm version prerelease');
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'already exists')) {
-                $this->warn("The git tag already exists. Please set it up manually.");
+                $this->warn('The git tag already exists. Please set it up manually.');
             } else {
-                $this->error("Failed to apply the version for some other reason: " . $e->getMessage());
-                $this->error("Please set it up manually, then push the branch and tags.");
-                if (!$wasAlreadyOnReleaseBranch) $this->runProcess("git checkout -");
+                $this->error('Failed to apply the version for some other reason: '.$e->getMessage());
+                $this->error('Please set it up manually, then push the branch and tags.');
+                if (! $wasAlreadyOnReleaseBranch) {
+                    $this->runProcess('git checkout -');
+                }
+
                 return;
             }
         }
-        $tag = trim($this->runProcess("git describe --tags --abbrev=0"));
+        $tag = trim($this->runProcess('git describe --tags --abbrev=0'));
 
         // Push the branch and the tags
-        $this->info("Pushing the branch and the tag...");
-        $this->runProcess("git push origin {$releaseBranch} --follow-tags");
+        $this->info('Pushing the branch and the tag...');
+        $this->runProcess('git push origin '.escapeshellarg($releaseBranch).' --follow-tags');
 
         // Check back out to the original branch
-        if (!$wasAlreadyOnReleaseBranch) $this->runProcess("git checkout -");
+        if (! $wasAlreadyOnReleaseBranch) {
+            $this->runProcess('git checkout -');
+        }
 
-        $this->info("Done!");
-        $this->info("Tag: " . trim($tag));
+        $this->info('Done!');
+        $this->info('Tag: '.trim($tag));
     }
 
     /**
@@ -139,6 +168,7 @@ class RemergeReleaseBranch extends Command
                 fn ($branch) => strlen($branch) > 0
             ));
         }
+
         return $releaseBranches;
     }
 
