@@ -59,6 +59,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     touch('./package-lock.json');
     $this->originRepo->addAllChanges();
     $this->originRepo->commit('Initial commit');
+    $this->defaultBranch = trim(shell_exec('git rev-parse --abbrev-ref HEAD'));
     $this->originRepo->createBranch('forge-production', true);
     $this->originRepo->createBranch('dev', true);
     file_put_contents('./README.md', 'dev');
@@ -76,7 +77,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     touch('./README-456.md');
     $this->originRepo->addAllChanges();
     $this->originRepo->commit('456 commit');
-    $this->originRepo->checkout('main');
+    $this->originRepo->checkout($this->defaultBranch);
 
     $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
     $this->repo->checkout($this->branchOneName);
