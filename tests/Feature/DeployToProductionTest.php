@@ -2,7 +2,7 @@
 
 beforeEach(function () {
     $this->originPackageJsonPath = '/tmp/test-repo-origin/package.json';
-    $this->createReleaseBranch = function (string $branchName, string $readmePath, string $commitMessage): void {
+    $this->createTestReleaseBranch = function (string $branchName, string $readmePath, string $commitMessage): void {
         $this->originRepo->createBranch($branchName, true);
         touch($readmePath);
         $this->originRepo->addAllChanges();
@@ -12,7 +12,7 @@ beforeEach(function () {
         $this->repo->checkout($branchName);
         $this->repo->checkout('main');
     };
-    $this->setOriginBranchPackageVersion = function (string $branchName, string $version): void {
+    $this->setTestOriginBranchPackageVersion = function (string $branchName, string $version): void {
         $this->originRepo->checkout($branchName);
 
         $packageJson = json_decode(file_get_contents($this->originPackageJsonPath), true);
@@ -49,7 +49,7 @@ it('updates the version with patch', function () {
 
 it('updates the version with minor', function () {
     $this->branchFourName = 'release/v1.1.0/87678';
-    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-87678.md', '87678 commit');
+    ($this->createTestReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-87678.md', '87678 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -60,7 +60,7 @@ it('updates the version with minor', function () {
 
 it('updates the version with major', function () {
     $this->branchFourName = 'release/v2.0.0/73474';
-    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-73474.md', '73474 commit');
+    ($this->createTestReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-73474.md', '73474 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -70,10 +70,10 @@ it('updates the version with major', function () {
 });
 
 it('updates the version with multi-digit minor versions', function () {
-    ($this->setOriginBranchPackageVersion)('forge-production', '0.53.5');
+    ($this->setTestOriginBranchPackageVersion)('forge-production', '0.53.5');
 
     $this->branchFourName = 'release/v0.54.0-0/2493-2503-2096-2440-2486';
-    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-2493.md', '2493 commit');
+    ($this->createTestReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-2493.md', '2493 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -84,7 +84,7 @@ it('updates the version with multi-digit minor versions', function () {
 
 it('fails when the release version does not increase', function () {
     $this->branchFourName = 'release/v1.0.0/77777';
-    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-77777.md', '77777 commit');
+    ($this->createTestReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-77777.md', '77777 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -93,13 +93,23 @@ it('fails when the release version does not increase', function () {
 });
 
 it('fails when the current version cannot be parsed', function () {
-    ($this->setOriginBranchPackageVersion)('forge-production', '1.0');
+    ($this->setTestOriginBranchPackageVersion)('forge-production', '1.0');
 
     $this->branchFourName = 'release/v1.0.1/88888';
-    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-88888.md', '88888 commit');
+    ($this->createTestReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-88888.md', '88888 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
         ->expectsOutput('Unable to determine version bump from v1.0 to v1.0.1.')
+        ->assertExitCode(1);
+});
+
+it('fails when the release branch name does not contain a supported version format', function () {
+    $this->branchFourName = 'release/not-a-version/99999';
+    ($this->createTestReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-99999.md', '99999 commit');
+
+    $this->artisan('deploy-to-production '.$this->branchFourName)
+        ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
+        ->expectsOutput('Unable to determine version bump from branch release/not-a-version/99999.')
         ->assertExitCode(1);
 });
