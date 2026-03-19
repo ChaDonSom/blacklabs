@@ -118,6 +118,12 @@ class DeployToProduction extends Command
             return 1;
         }
 
+        if (! $versionBump) {
+            $this->error("Unable to determine version bump from branch {$branch}.");
+
+            return 1;
+        }
+
         // Tag it and push
         $this->info("Running $versionBump from $currentVersion.");
         Log::debug("Running $versionBump from $currentVersion.");
