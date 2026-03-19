@@ -1,31 +1,30 @@
 <?php
 
-function createReleaseBranch($originRepo, $repo, string $branchName, string $readmePath, string $commitMessage): void
-{
-    $originRepo->createBranch($branchName, true);
-    touch($readmePath);
-    $originRepo->addAllChanges();
-    $originRepo->commit($commitMessage);
-    $originRepo->checkout('main');
-    $repo->fetch();
-    $repo->checkout($branchName);
-    $repo->checkout('main');
-}
+beforeEach(function () {
+    $this->originPackageJsonPath = '/tmp/test-repo-origin/package.json';
+    $this->createReleaseBranch = function (string $branchName, string $readmePath, string $commitMessage): void {
+        $this->originRepo->createBranch($branchName, true);
+        touch($readmePath);
+        $this->originRepo->addAllChanges();
+        $this->originRepo->commit($commitMessage);
+        $this->originRepo->checkout('main');
+        $this->repo->fetch();
+        $this->repo->checkout($branchName);
+        $this->repo->checkout('main');
+    };
+    $this->setOriginBranchPackageVersion = function (string $branchName, string $version): void {
+        $this->originRepo->checkout($branchName);
 
-function setOriginBranchPackageVersion($originRepo, string $branchName, string $version): void
-{
-    $originRepo->checkout($branchName);
+        $packageJson = json_decode(file_get_contents($this->originPackageJsonPath), true);
+        $packageJson['version'] = $version;
 
-    $packageJsonPath = '/tmp/test-repo-origin/package.json';
-    $packageJson = json_decode(file_get_contents($packageJsonPath), true);
-    $packageJson['version'] = $version;
+        file_put_contents($this->originPackageJsonPath, json_encode($packageJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
 
-    file_put_contents($packageJsonPath, json_encode($packageJson, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES).PHP_EOL);
-
-    $originRepo->addAllChanges();
-    $originRepo->commit("Set package version to {$version}");
-    $originRepo->checkout('main');
-}
+        $this->originRepo->addAllChanges();
+        $this->originRepo->commit("Set package version to {$version}");
+        $this->originRepo->checkout('main');
+    };
+});
 
 it('works in a dummy git repo', function () {
     $this->artisan('deploy-to-production '.$this->branchTwoName)
@@ -50,7 +49,7 @@ it('updates the version with patch', function () {
 
 it('updates the version with minor', function () {
     $this->branchFourName = 'release/v1.1.0/87678';
-    createReleaseBranch($this->originRepo, $this->repo, $this->branchFourName, '/tmp/test-repo-origin/README-87678.md', '87678 commit');
+    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-87678.md', '87678 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -61,7 +60,7 @@ it('updates the version with minor', function () {
 
 it('updates the version with major', function () {
     $this->branchFourName = 'release/v2.0.0/73474';
-    createReleaseBranch($this->originRepo, $this->repo, $this->branchFourName, '/tmp/test-repo-origin/README-73474.md', '73474 commit');
+    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-73474.md', '73474 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -71,10 +70,10 @@ it('updates the version with major', function () {
 });
 
 it('updates the version with multi-digit minor versions', function () {
-    setOriginBranchPackageVersion($this->originRepo, 'forge-production', '0.53.5');
+    ($this->setOriginBranchPackageVersion)('forge-production', '0.53.5');
 
     $this->branchFourName = 'release/v0.54.0-0/2493-2503-2096-2440-2486';
-    createReleaseBranch($this->originRepo, $this->repo, $this->branchFourName, '/tmp/test-repo-origin/README-2493.md', '2493 commit');
+    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-2493.md', '2493 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -85,7 +84,7 @@ it('updates the version with multi-digit minor versions', function () {
 
 it('fails when the release version does not increase', function () {
     $this->branchFourName = 'release/v1.0.0/77777';
-    createReleaseBranch($this->originRepo, $this->repo, $this->branchFourName, '/tmp/test-repo-origin/README-77777.md', '77777 commit');
+    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-77777.md', '77777 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -94,10 +93,10 @@ it('fails when the release version does not increase', function () {
 });
 
 it('fails when the current version cannot be parsed', function () {
-    setOriginBranchPackageVersion($this->originRepo, 'forge-production', '1.0');
+    ($this->setOriginBranchPackageVersion)('forge-production', '1.0');
 
     $this->branchFourName = 'release/v1.0.1/88888';
-    createReleaseBranch($this->originRepo, $this->repo, $this->branchFourName, '/tmp/test-repo-origin/README-88888.md', '88888 commit');
+    ($this->createReleaseBranch)($this->branchFourName, '/tmp/test-repo-origin/README-88888.md', '88888 commit');
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
