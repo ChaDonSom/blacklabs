@@ -5,9 +5,8 @@ namespace App\Commands;
 use App\Services\RunsProcesses;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process;
-use LaravelZero\Framework\Commands\Command;
 use Illuminate\Support\Str;
+use LaravelZero\Framework\Commands\Command;
 
 class DeployToProduction extends Command
 {
@@ -34,32 +33,33 @@ class DeployToProduction extends Command
      */
     public function handle()
     {
-        if (!$this->option('force')) {
+        if (! $this->option('force')) {
             $production = 'forge-production';
             $this->warn("[WARNING] Only run this command if you know what you're doing.");
-            $inputName = $this->ask("Please type the name of the production branch to continue.");
+            $inputName = $this->ask('Please type the name of the production branch to continue.');
             if ($inputName !== $production) {
                 $this->error("You didn't type the name of the production branch correctly. Aborting.");
+
                 return;
             }
         }
 
         $branch = $this->argument('branch');
-        if (!$branch) {
+        if (! $branch) {
             $branchesToChooseFrom = explode("\n", $this->runProcess('git branch --list "release/*" --format="%(refname:short)"'));
             $branch = $this->anticipate('Which branch should we deploy?', $branchesToChooseFrom);
         }
 
         $this->info("Deploying {$branch} to production.");
 
-        $this->info("Checking out production branch.");
+        $this->info('Checking out production branch.');
         $this->runProcess("git checkout {$production}");
 
         // Get current version for later
-        $currentVersion = 'v' . $this->runProcess("node -p \"require('./package.json').version\"");
+        $currentVersion = 'v'.$this->runProcess("node -p \"require('./package.json').version\"");
 
-        $this->info("Pulling latest production branch.");
-        $this->runProcess("git pull");
+        $this->info('Pulling latest production branch.');
+        $this->runProcess('git pull');
 
         $this->info("Merging {$branch} into production."); // Merging release/v0.31.4-0/1537 into production.
         $this->runProcess("git merge origin/{$branch}");
@@ -69,28 +69,53 @@ class DeployToProduction extends Command
         Log::debug("Version from branch: $versionFromBranch");
         Log::debug("Current version: $currentVersion");
 
-        $versionBump = '?';
+        $versionBump = null;
         if ($this->isVersionNumber($versionFromBranch)) {
             // Parse semantic versions properly
             $currentParts = $this->parseVersion($currentVersion);
             $newParts = $this->parseVersion($versionFromBranch);
-            
-            Log::debug("Current version parts: " . json_encode($currentParts));
-            Log::debug("New version parts: " . json_encode($newParts));
-            
-            if ($currentParts && $newParts) {
-                if ($newParts['major'] > $currentParts['major']) {
-                    $versionBump = 'major';
-                } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] > $currentParts['minor']) {
-                    $versionBump = 'minor';
-                } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] === $currentParts['minor'] && $newParts['patch'] > $currentParts['patch']) {
-                    $versionBump = 'patch';
-                }
-                Log::debug("Version bump: $versionBump");
+
+            Log::debug('Current version parts: '.json_encode($currentParts));
+            Log::debug('New version parts: '.json_encode($newParts));
+
+            if (! $currentParts || ! $newParts) {
+                Log::error('Failed to parse version numbers for bump calculation.', [
+                    'currentVersionRaw' => $currentVersion,
+                    'branchVersionRaw' => $versionFromBranch,
+                    'currentParts' => $currentParts,
+                    'newParts' => $newParts,
+                ]);
+                $this->error("Unable to determine version bump from {$currentVersion} to {$versionFromBranch}.");
+
+                return 1;
             }
-        } else if ($this->isIssueBranch($versionFromBranch)) {
-            Log::debug("Branch is an issue branch.");
+
+            if ($newParts['major'] > $currentParts['major']) {
+                $versionBump = 'major';
+            } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] > $currentParts['minor']) {
+                $versionBump = 'minor';
+            } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] === $currentParts['minor'] && $newParts['patch'] > $currentParts['patch']) {
+                $versionBump = 'patch';
+            } else {
+                Log::warning('Unable to determine a forward version bump.', [
+                    'currentVersionRaw' => $currentVersion,
+                    'branchVersionRaw' => $versionFromBranch,
+                    'currentParts' => $currentParts,
+                    'newParts' => $newParts,
+                ]);
+                $this->error("Release version {$versionFromBranch} must be greater than current version {$currentVersion}.");
+
+                return 1;
+            }
+
+            Log::debug("Version bump: $versionBump");
+        } elseif ($this->isIssueBranch($versionFromBranch)) {
+            Log::debug('Branch is an issue branch.');
             $versionBump = 'patch';
+        } else {
+            $this->error("Unable to determine version bump from branch {$branch}.");
+
+            return 1;
         }
 
         // Tag it and push
@@ -98,28 +123,28 @@ class DeployToProduction extends Command
         Log::debug("Running $versionBump from $currentVersion.");
         $this->runProcess("npm version {$versionBump}");
 
-        $this->info("Pushing production branch.");
-        $this->runProcess("git push");
-        $this->runProcess("git push --tags");
+        $this->info('Pushing production branch.');
+        $this->runProcess('git push');
+        $this->runProcess('git push --tags');
 
-        $this->info("Checking out dev branch.");
-        $this->runProcess("git checkout dev");
+        $this->info('Checking out dev branch.');
+        $this->runProcess('git checkout dev');
 
-        $this->info("Pulling latest dev branch.");
-        $this->runProcess("git pull");
+        $this->info('Pulling latest dev branch.');
+        $this->runProcess('git pull');
 
-        $this->info("Merging production into dev.");
+        $this->info('Merging production into dev.');
         $this->runProcess("git merge {$production}");
 
-        $this->info("Pushing dev branch.");
-        $this->runProcess("git push");
+        $this->info('Pushing dev branch.');
+        $this->runProcess('git push');
 
         $this->info("Deleting {$branch}.");
         $this->runProcess("git branch -D {$branch}");
         $this->runProcess("git push origin --delete {$branch}");
 
-        $this->info("New version: " . $this->runProcess("git describe --tags --abbrev=0"));
-        $this->info("Done!");
+        $this->info('New version: '.$this->runProcess('git describe --tags --abbrev=0'));
+        $this->info('Done!');
     }
 
     public function isVersionNumber($string)
@@ -129,24 +154,24 @@ class DeployToProduction extends Command
 
     /**
      * Parse a semantic version string into its components.
-     * 
-     * @param string $version Version string like "v1.2.3" or "v1.2.3-0"
+     *
+     * @param  string  $version  Version string like "v1.2.3" or "v1.2.3-0"
      * @return array|null Array with 'major', 'minor', 'patch' keys or null if invalid
      */
     private function parseVersion(string $version): ?array
     {
         // Remove 'v' prefix if present
         $version = ltrim($version, 'v');
-        
+
         // Match semantic version pattern
         if (preg_match('/^(\d+)\.(\d+)\.(\d+)(?:-\d+)?$/', $version, $matches)) {
             return [
-                'major' => (int)$matches[1],
-                'minor' => (int)$matches[2],
-                'patch' => (int)$matches[3],
+                'major' => (int) $matches[1],
+                'minor' => (int) $matches[2],
+                'patch' => (int) $matches[3],
             ];
         }
-        
+
         return null;
     }
 
@@ -160,9 +185,6 @@ class DeployToProduction extends Command
 
     /**
      * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
      */
     public function schedule(Schedule $schedule): void
     {
