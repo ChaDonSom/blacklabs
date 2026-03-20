@@ -3,6 +3,9 @@
 /.vscode
 /.vagrant
 .phpunit.result.cache
+/builds/cache
+/builds/logs
+/release-assets
 /storage/logs
 /storage/app/forge-api-token.txt
 /storage/app/forge-sites.json
