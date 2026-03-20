@@ -50,6 +50,14 @@ it('updates the version with patch', function () {
 it('updates the version with minor', function () {
     $this->branchFourName = 'release/v1.1.0/87678';
     ($this->createTestReleaseBranchClosure)($this->branchFourName, '/tmp/test-repo-origin/README-87678.md', '87678 commit');
+    $this->originRepo->createBranch($this->branchFourName, true);
+    touch('/tmp/test-repo-origin/README-87678.md');
+    $this->originRepo->addAllChanges();
+    $this->originRepo->commit('87678 commit');
+    $this->originRepo->checkout($this->defaultBranch);
+    $this->repo->fetch();
+    $this->repo->checkout($this->branchFourName);
+    $this->repo->checkout($this->defaultBranch);
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
@@ -61,6 +69,14 @@ it('updates the version with minor', function () {
 it('updates the version with major', function () {
     $this->branchFourName = 'release/v2.0.0/73474';
     ($this->createTestReleaseBranchClosure)($this->branchFourName, '/tmp/test-repo-origin/README-73474.md', '73474 commit');
+    $this->originRepo->createBranch($this->branchFourName, true);
+    touch('/tmp/test-repo-origin/README-73474.md');
+    $this->originRepo->addAllChanges();
+    $this->originRepo->commit('73474 commit');
+    $this->originRepo->checkout($this->defaultBranch);
+    $this->repo->fetch();
+    $this->repo->checkout($this->branchFourName);
+    $this->repo->checkout($this->defaultBranch);
 
     $this->artisan('deploy-to-production '.$this->branchFourName)
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
