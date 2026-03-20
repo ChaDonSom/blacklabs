@@ -47,15 +47,21 @@ function something(): void
     // ..
 }
 
+function configureGitIdentity(string $repositoryPath): void
+{
+    exec(sprintf('git -C %s config user.name %s', escapeshellarg($repositoryPath), escapeshellarg('Blacklabs Tests')));
+    exec(sprintf('git -C %s config user.email %s', escapeshellarg($repositoryPath), escapeshellarg('tests@example.com')));
+}
+
 uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->git = app()->make(Git::class);
+    chdir(base_path());
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
     $this->originRepo = $this->git->init('/tmp/test-repo-origin');
+    configureGitIdentity('/tmp/test-repo-origin');
     chdir('/tmp/test-repo-origin');
-    exec('git config user.email "test@test.com"');
-    exec('git config user.name "Test User"');
     exec('npm init -y');
     touch('./README.md');
     touch('./package-lock.json');
@@ -82,14 +88,13 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->originRepo->checkout($this->defaultBranch);
 
     $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
-    chdir('/tmp/test-repo');
-    exec('git config user.email "test@test.com"');
-    exec('git config user.name "Test User"');
+    configureGitIdentity('/tmp/test-repo');
     $this->repo->checkout($this->branchOneName);
     $this->repo->checkout($this->branchTwoName);
     $this->repo->checkout('dev');
     chdir('/tmp/test-repo');
 })->afterEach(function () {
+    chdir(base_path());
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
 })->in('Feature');

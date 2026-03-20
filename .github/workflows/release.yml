@@ -1,0 +1,50 @@
+name: Release artifacts
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Run tests
+        run: ./vendor/bin/pest --colors=never
+
+      - name: Build PHAR
+        run: php blacklabs app:build --build-version="${GITHUB_REF_NAME}"
+
+      - name: Prepare release assets
+        run: ./scripts/build-release-assets.sh
+
+      - name: Publish release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release-assets/blacklabs
+            release-assets/blacklabs-linux-x64
+            release-assets/blacklabs-linux-arm64
+            release-assets/blacklabs-macos-x64
+            release-assets/blacklabs-macos-arm64
+            release-assets/blacklabs-windows-x64.exe
+          fail_on_unmatched_files: false
