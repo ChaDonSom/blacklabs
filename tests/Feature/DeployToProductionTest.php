@@ -7,10 +7,10 @@ beforeEach(function () {
         touch($readmePath);
         $this->originRepo->addAllChanges();
         $this->originRepo->commit($commitMessage);
-        $this->originRepo->checkout('main');
+        $this->originRepo->checkout($this->defaultBranch);
         $this->repo->fetch();
         $this->repo->checkout($branchName);
-        $this->repo->checkout('main');
+        $this->repo->checkout($this->defaultBranch);
     };
     $this->setTestOriginBranchPackageVersionClosure = function (string $branchName, string $version): void {
         $this->originRepo->checkout($branchName);
@@ -22,7 +22,7 @@ beforeEach(function () {
 
         $this->originRepo->addAllChanges();
         $this->originRepo->commit("Set package version to {$version}");
-        $this->originRepo->checkout('main');
+        $this->originRepo->checkout($this->defaultBranch);
     };
 });
 

@@ -18,4 +18,15 @@ trait RunsProcesses
         }
         return trim($result->output());
     }
+
+    public function getDefaultBranch(string $remote = 'origin'): string
+    {
+        try {
+            $remoteHead = $this->runProcess("git symbolic-ref --quiet --short refs/remotes/{$remote}/HEAD");
+
+            return preg_replace('#^'.preg_quote($remote, '#').'/#', '', $remoteHead, 1) ?? $remoteHead;
+        } catch (\Exception) {
+            return $this->runProcess('git rev-parse --abbrev-ref HEAD');
+        }
+    }
 }

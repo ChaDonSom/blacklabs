@@ -14,7 +14,7 @@ Use this skill when working in this repo or similar Laravel Zero CLI projects.
 ### Release/Deploy flows
 - Create release branch: `php blacklabs create-release-branch <level|vX.Y.Z[-N]> <issue1,issue2>` (merges issue branches, tags via npm, pushes branch+tags, may call `gh pr create`).
 - Deploy to production: `php blacklabs deploy-to-production [release/...]` (confirms `forge-production`, merges to prod, bumps npm version, merges prod -> dev, deletes release branch).
-- Packagist deploy: `php blacklabs app:deploy` (must be clean master on upstream repo; runs tests, builds Phar, tags/pushes).
+- Packagist deploy: `php blacklabs app:deploy` (must be on a clean default branch in the upstream repo; runs tests, builds Phar, tags/pushes).
 
 ### Conventions
 - Branches: issue branches start with issue number; release branches `release/<version>/<issues>`; production branch `forge-production`; primary dev branch `dev`.
