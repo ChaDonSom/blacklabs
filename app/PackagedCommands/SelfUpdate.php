@@ -135,11 +135,11 @@ class SelfUpdate extends Command
             throw new Exception('Could not determine the current executable path.');
         }
 
-        if (str_contains($argvZero, DIRECTORY_SEPARATOR) || $this->isWindowsAbsolutePath($argvZero)) {
+        if ($this->looksLikePath($argvZero)) {
             return realpath($argvZero) ?: $argvZero;
         }
 
-        $resolvedPath = (new ExecutableFinder())->find($argvZero);
+        $resolvedPath = (new ExecutableFinder)->find($argvZero);
 
         if ($resolvedPath) {
             return realpath($resolvedPath) ?: $resolvedPath;
@@ -226,9 +226,14 @@ class SelfUpdate extends Command
         return ltrim($version, 'v');
     }
 
+    protected function looksLikePath(string $path): bool
+    {
+        return str_contains($path, '/') || str_contains($path, '\\') || $this->isWindowsAbsolutePath($path);
+    }
+
     protected function isWindowsAbsolutePath(string $path): bool
     {
-        return $this->isWindows() && (bool) preg_match('/^[A-Za-z]:\\\\/', $path);
+        return $this->isWindows() && (bool) preg_match('/^[A-Za-z]:[\\\\/]/', $path);
     }
 
     protected function isWindows(): bool

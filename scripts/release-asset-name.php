@@ -1,9 +1,9 @@
 #!/usr/bin/env php
 <?php
 
-require __DIR__.'/../vendor/autoload.php';
-
 use App\Services\ReleaseAssets;
+
+require __DIR__.'/../vendor/autoload.php';
 
 $path = $argv[1] ?? null;
 
