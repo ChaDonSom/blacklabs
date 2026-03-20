@@ -5,9 +5,8 @@ namespace App\Commands;
 use App\Services\RunsProcesses;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Process;
-use LaravelZero\Framework\Commands\Command;
 use Illuminate\Support\Str;
+use LaravelZero\Framework\Commands\Command;
 
 class DeployToProduction extends Command
 {
@@ -34,32 +33,46 @@ class DeployToProduction extends Command
      */
     public function handle()
     {
-        if (!$this->option('force')) {
-            $production = 'forge-production';
+        $production = 'forge-production';
+
+        if (! $this->option('force')) {
             $this->warn("[WARNING] Only run this command if you know what you're doing.");
-            $inputName = $this->ask("Please type the name of the production branch to continue.");
+            $inputName = $this->ask('Please type the name of the production branch to continue.');
             if ($inputName !== $production) {
                 $this->error("You didn't type the name of the production branch correctly. Aborting.");
-                return;
+
+                return 1;
             }
         }
 
         $branch = $this->argument('branch');
-        if (!$branch) {
+        if (! $branch) {
             $branchesToChooseFrom = explode("\n", $this->runProcess('git branch --list "release/*" --format="%(refname:short)"'));
             $branch = $this->anticipate('Which branch should we deploy?', $branchesToChooseFrom);
         }
 
+        if (! str_starts_with($branch, 'release/')) {
+            $this->error('Only release branches can be deployed to production. Aborting.');
+
+            return 1;
+        }
+
         $this->info("Deploying {$branch} to production.");
 
-        $this->info("Checking out production branch.");
+        $this->info('Checking out production branch.');
         $this->runProcess("git checkout {$production}");
 
-        // Get current version for later
-        $currentVersion = 'v' . $this->runProcess("node -p \"require('./package.json').version\"");
+        if ($this->runProcess('git branch --show-current') !== $production) {
+            $this->error("Failed to switch to {$production}. Aborting.");
 
-        $this->info("Pulling latest production branch.");
-        $this->runProcess("git pull");
+            return 1;
+        }
+
+        // Get current version for later
+        $currentVersion = 'v'.$this->runProcess("node -p \"require('./package.json').version\"");
+
+        $this->info('Pulling latest production branch.');
+        $this->runProcess('git pull');
 
         $this->info("Merging {$branch} into production."); // Merging release/v0.31.4-0/1537 into production.
         $this->runProcess("git merge origin/{$branch}");
@@ -80,8 +93,8 @@ class DeployToProduction extends Command
                     break;
                 }
             }
-        } else if ($this->isIssueBranch($versionFromBranch)) {
-            Log::debug("Branch is an issue branch.");
+        } elseif ($this->isIssueBranch($versionFromBranch)) {
+            Log::debug('Branch is an issue branch.');
             $versionBump = 'patch';
         }
 
@@ -90,28 +103,36 @@ class DeployToProduction extends Command
         Log::debug("Running $versionBump from $currentVersion.");
         $this->runProcess("npm version {$versionBump}");
 
-        $this->info("Pushing production branch.");
-        $this->runProcess("git push");
-        $this->runProcess("git push --tags");
+        $this->info('Pushing production branch.');
+        $this->runProcess('git push');
+        $this->runProcess('git push --tags');
 
-        $this->info("Checking out dev branch.");
-        $this->runProcess("git checkout dev");
+        $this->info('Checking out dev branch.');
+        $this->runProcess('git checkout dev');
 
-        $this->info("Pulling latest dev branch.");
-        $this->runProcess("git pull");
+        if ($this->runProcess('git branch --show-current') !== 'dev') {
+            $this->error('Failed to switch to dev. Aborting.');
 
-        $this->info("Merging production into dev.");
+            return 1;
+        }
+
+        $this->info('Pulling latest dev branch.');
+        $this->runProcess('git pull');
+
+        $this->info('Merging production into dev.');
         $this->runProcess("git merge {$production}");
 
-        $this->info("Pushing dev branch.");
-        $this->runProcess("git push");
+        $this->info('Pushing dev branch.');
+        $this->runProcess('git push');
 
         $this->info("Deleting {$branch}.");
         $this->runProcess("git branch -D {$branch}");
         $this->runProcess("git push origin --delete {$branch}");
 
-        $this->info("New version: " . $this->runProcess("git describe --tags --abbrev=0"));
-        $this->info("Done!");
+        $this->info('New version: '.$this->runProcess('git describe --tags --abbrev=0'));
+        $this->info('Done!');
+
+        return 0;
     }
 
     public function isVersionNumber($string)
@@ -129,9 +150,6 @@ class DeployToProduction extends Command
 
     /**
      * Define the command's schedule.
-     *
-     * @param  \Illuminate\Console\Scheduling\Schedule  $schedule
-     * @return void
      */
     public function schedule(Schedule $schedule): void
     {

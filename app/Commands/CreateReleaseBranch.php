@@ -5,16 +5,16 @@ namespace App\Commands;
 use App\Services\FindsIssueBranches;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
-use LaravelZero\Framework\Commands\Command;
 use CzProject\GitPhp\Git;
 use Exception;
 use Illuminate\Support\Facades\Log;
+use LaravelZero\Framework\Commands\Command;
 
 class CreateReleaseBranch extends Command
 {
     use FindsIssueBranches;
-    use RunsProcesses;
     use MergesBranches;
+    use RunsProcesses;
 
     /**
      * The name and signature of the console command.
@@ -40,18 +40,28 @@ class CreateReleaseBranch extends Command
         $level = $this->argument('level');
         if ($this->isVersionNumber($level)) {
             // If the level is a version number and doesn't have -x in it, we'll add that.
-            if (!str_contains($level, '-')) $level = "{$level}-0";
+            if (! str_contains($level, '-')) {
+                $level = "{$level}-0";
+            }
         } else {
             // If the level doesn't have 'pre' in it, we'll add it.
-            if (in_array($level, ['major', 'minor', 'patch']) && !str_contains($level, 'pre')) $level = "pre{$level}";
+            if (in_array($level, ['major', 'minor', 'patch']) && ! str_contains($level, 'pre')) {
+                $level = "pre{$level}";
+            }
         }
         $issues = $this->argument('issues');
 
-        $this->info("Checking out dev branch.");
+        $this->info('Checking out dev branch.');
         $repo = $git->open(getcwd());
         $repo->checkout('dev');
 
-        $this->info("Pulling latest dev branch.");
+        if ($this->runProcess('git branch --show-current') !== 'dev') {
+            $this->error('Failed to switch to dev. Aborting.');
+
+            return 1;
+        }
+
+        $this->info('Pulling latest dev branch.');
         $repo->pull();
 
         $version = $this->getNextVersionWithoutCommitting($level); // This is because we don't want to commit the
@@ -72,14 +82,25 @@ class CreateReleaseBranch extends Command
                     $this->runProcess("git checkout -b {$branchName}");
                 } else {
                     $this->error("Branch {$branchName} already exists. Please delete it or choose a different version.");
-                    return;
+
+                    return 1;
                 }
+            } else {
+                $this->error("Failed to create branch {$branchName}. Aborting.");
+
+                return 1;
             }
         }
 
-        $this->info("Pulling issue branches into release branch.");
+        if ($this->runProcess('git branch --show-current') !== $branchName) {
+            $this->error("Failed to switch to {$branchName}. Aborting.");
+
+            return 1;
+        }
+
+        $this->info('Pulling issue branches into release branch.');
         $issuesArray = explode(',', $issues);
-        Log::debug("Issues array: " . print_r($issuesArray, true));
+        Log::debug('Issues array: '.print_r($issuesArray, true));
         $issueBranches = $this->findIssueBranches($issuesArray);
 
         $this->mergeBranches($issueBranches);
@@ -89,22 +110,23 @@ class CreateReleaseBranch extends Command
             $this->runProcess("npm version $version"); // This will commit the version change
         } catch (\Exception $e) {
             if (str_contains($e->getMessage(), 'already exists')) {
-                $this->warn("The git tag already exists. Please set it up manually.");
+                $this->warn('The git tag already exists. Please set it up manually.');
             } else {
-                $this->error("Failed to apply the version for some other reason: " . $e->getMessage());
-                $this->error("Please set it up manually, then push the branch and tags, and create the PR.");
-                return;
+                $this->error('Failed to apply the version for some other reason: '.$e->getMessage());
+                $this->error('Please set it up manually, then push the branch and tags, and create the PR.');
+
+                return 1;
             }
         }
 
-        $this->info("Pushing release branch to origin.");
+        $this->info('Pushing release branch to origin.');
         $this->runProcess("git push origin $branchName");
-        $this->runProcess("git push origin --tags");
+        $this->runProcess('git push origin --tags');
 
-        $this->info("Creating release PR.");
-        $prBody = "- #" . implode("\n- #", $issuesArray) . "\n";
+        $this->info('Creating release PR.');
+        $prBody = '- #'.implode("\n- #", $issuesArray)."\n";
         // We don't run this in testing mode, because I don't feel like figuring out how to mock the gh command for now.
-        if (!app()->runningUnitTests()) {
+        if (! app()->runningUnitTests()) {
             try {
                 $this->runProcess(<<<bash
                     gh pr create \
@@ -115,18 +137,22 @@ class CreateReleaseBranch extends Command
                         --assignee @me
                 bash);
             } catch (\Exception $e) {
-                $this->warn("Failed to create PR. Please create it manually.");
+                $this->warn('Failed to create PR. Please create it manually.');
             }
         }
 
-        $this->info("Done.");
+        $this->info('Done.');
         $this->info("Branch: {$branchName}");
+
+        return 0;
     }
 
     /**
      * Get the next version number. This will run npm version, then throw out the file changes and tag.
-     * @param string $versionOrLevel The level of the release (major, minor, patch, prerelease) - or - the version number
+     *
+     * @param  string  $versionOrLevel  The level of the release (major, minor, patch, prerelease) - or - the version number
      * @return string The next version number
+     *
      * @throws Exception If something goes wrong with the commands
      */
     public function getNextVersionWithoutCommitting(string $versionOrLevel): string
@@ -135,10 +161,12 @@ class CreateReleaseBranch extends Command
         $version = $this->runProcess("npm version $versionOrLevel --no-git-tag-version");
 
         // Toss out the changes to package.json
-        $this->runProcess("git checkout package.json");
-        $this->runProcess("git checkout package-lock.json");
+        $this->runProcess('git checkout package.json');
+        $this->runProcess('git checkout package-lock.json');
         // Also toss out the tag
-        if ($this->runProcess("git tag -l {$version}")) $this->runProcess("git tag -d {$version}");
+        if ($this->runProcess("git tag -l {$version}")) {
+            $this->runProcess("git tag -d {$version}");
+        }
 
         return $version;
     }
