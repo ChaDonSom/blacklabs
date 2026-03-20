@@ -54,6 +54,8 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     exec('rm -rf /tmp/test-repo-origin');
     $this->originRepo = $this->git->init('/tmp/test-repo-origin');
     chdir('/tmp/test-repo-origin');
+    exec('git config user.email "test@test.com"');
+    exec('git config user.name "Test User"');
     exec('npm init -y');
     touch('./README.md');
     touch('./package-lock.json');
@@ -80,6 +82,9 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->originRepo->checkout($this->defaultBranch);
 
     $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
+    chdir('/tmp/test-repo');
+    exec('git config user.email "test@test.com"');
+    exec('git config user.name "Test User"');
     $this->repo->checkout($this->branchOneName);
     $this->repo->checkout($this->branchTwoName);
     $this->repo->checkout('dev');

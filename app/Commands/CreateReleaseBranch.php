@@ -53,9 +53,9 @@ class CreateReleaseBranch extends Command
 
         $this->info('Checking out dev branch.');
         $repo = $git->open(getcwd());
-        $repo->checkout('dev');
-
-        if ($this->runProcess('git branch --show-current') !== 'dev') {
+        try {
+            $repo->checkout('dev');
+        } catch (\Exception $e) {
             $this->error('Failed to switch to dev. Aborting.');
 
             return 1;
