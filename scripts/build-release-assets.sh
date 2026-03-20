@@ -5,18 +5,18 @@ set -euo pipefail
 phar_source="${1:-builds/blacklabs}"
 release_dir="${2:-release-assets}"
 php_version="${PHPACKER_PHP_VERSION:-8.4}"
-phpacker_bin="${PHPACKER_BIN:-}"
+packager_bin="${PHPACKER_BIN:-}"
 
 if [[ ! -f "$phar_source" ]]; then
     echo "Expected a built phar at $phar_source" >&2
     exit 1
 fi
 
-if [[ -z "$phpacker_bin" ]]; then
+if [[ -z "$packager_bin" ]]; then
     if [[ -x "./vendor/bin/phpacker" ]]; then
-        phpacker_bin="./vendor/bin/phpacker"
+        packager_bin="./vendor/bin/phpacker"
     elif command -v phpacker >/dev/null 2>&1; then
-        phpacker_bin="$(command -v phpacker)"
+        packager_bin="$(command -v phpacker)"
     else
         echo "phpacker must be installed as a project dependency or available on PATH to build packed binaries." >&2
         exit 1
@@ -32,7 +32,7 @@ cp "$phar_source" "$release_dir/blacklabs.phar"
 raw_dir="$(mktemp -d "${TMPDIR:-/tmp}/blacklabs-phpacker-XXXXXX")"
 trap 'rm -rf "$raw_dir"' EXIT
 
-"$phpacker_bin" build all --src="$release_dir/blacklabs.phar" --php="$php_version" --dest="$raw_dir"
+"$packager_bin" build all --src="$release_dir/blacklabs.phar" --php="$php_version" --dest="$raw_dir"
 
 while IFS= read -r -d '' file; do
     lower_path="$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')"

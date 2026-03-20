@@ -12,7 +12,7 @@ The Black Labs CLI, for our work.
 
 2. PHAR installs, Composer-global installs, and local development use PHP `8.4`.
 
-3. You must have `git` istalled on your machine
+3. You must have `git` installed on your machine
 
     ```sh
     sudo apt install git-all
