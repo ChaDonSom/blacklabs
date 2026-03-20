@@ -1,6 +1,8 @@
 <?php
 
 use App\Commands\Deploy;
+use App\PackagedCommands\SelfUpdate;
+use LaravelZero\Framework\Components\Updater\SelfUpdateCommand as FrameworkSelfUpdateCommand;
 
 return [
 
@@ -42,7 +44,9 @@ return [
     */
 
     'add' => [
-        // ..
+        ...(\Phar::running() !== '' || PHP_SAPI === 'micro'
+            ? [SelfUpdate::class]
+            : []),
     ],
 
     /*
@@ -80,7 +84,7 @@ return [
     */
 
     'remove' => [
-        // ..
+        FrameworkSelfUpdateCommand::class,
     ],
 
 ];

@@ -6,9 +6,15 @@ phar_source="${1:-builds/blacklabs}"
 release_dir="${2:-release-assets}"
 php_version="${PHPACKER_PHP_VERSION:-8.4}"
 packager_bin="${PHPACKER_BIN:-}"
+asset_name_script="./scripts/release-asset-name.php"
 
 if [[ ! -f "$phar_source" ]]; then
     echo "Expected a built phar at $phar_source" >&2
+    exit 1
+fi
+
+if [[ ! -f "$asset_name_script" ]]; then
+    echo "Expected an asset naming helper at $asset_name_script" >&2
     exit 1
 fi
 
@@ -35,29 +41,10 @@ trap 'rm -rf "$raw_dir"' EXIT
 "$packager_bin" build all --src="$release_dir/blacklabs.phar" --php="$php_version" --dest="$raw_dir"
 
 while IFS= read -r -d '' file; do
-    lower_path="$(printf '%s' "$file" | tr '[:upper:]' '[:lower:]')"
-    destination=''
+    destination_name="$(php "$asset_name_script" "$file")"
 
-    case "$lower_path" in
-        *windows*x64*.exe)
-            destination="$release_dir/blacklabs-windows-x64.exe"
-            ;;
-        *mac*arm64*|*darwin*arm64*|*macos*arm64*)
-            destination="$release_dir/blacklabs-macos-arm64"
-            ;;
-        *mac*x64*|*mac*amd64*|*darwin*x64*|*darwin*amd64*|*macos*x64*)
-            destination="$release_dir/blacklabs-macos-x64"
-            ;;
-        *linux*arm64*|*linux*aarch64*)
-            destination="$release_dir/blacklabs-linux-arm64"
-            ;;
-        *linux*x64*|*linux*amd64*)
-            destination="$release_dir/blacklabs-linux-x64"
-            ;;
-    esac
-
-    if [[ -n "$destination" ]]; then
-        cp "$file" "$destination"
+    if [[ -n "$destination_name" ]]; then
+        cp "$file" "$release_dir/$destination_name"
     fi
 done < <(find "$raw_dir" -type f -print0)
 
