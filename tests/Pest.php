@@ -49,6 +49,8 @@ function something(): void
 
 uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->git = app()->make(Git::class);
+    $this->baseWorkingDirectory = base_path();
+    chdir($this->baseWorkingDirectory);
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
@@ -85,6 +87,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->repo->checkout('dev');
     chdir('/tmp/test-repo');
 })->afterEach(function () {
+    chdir($this->baseWorkingDirectory);
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
 })->in('Feature');
