@@ -56,7 +56,7 @@ class CreateReleaseBranch extends Command
         try {
             $repo->checkout('dev');
         } catch (\Exception $e) {
-            $this->error('Failed to switch to dev. Aborting.');
+            $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
 
             return 1;
         }

@@ -71,7 +71,7 @@ class DeployToProduction extends Command
         try {
             $this->runProcess("git checkout {$production}");
         } catch (\Exception $e) {
-            $this->error("Failed to switch to {$production}. Aborting.");
+            $this->error("Failed to switch to {$production}: {$e->getMessage()}. Aborting.");
 
             return 1;
         }
@@ -119,7 +119,7 @@ class DeployToProduction extends Command
         try {
             $this->runProcess('git checkout dev');
         } catch (\Exception $e) {
-            $this->error('Failed to switch to dev. Aborting.');
+            $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
 
             return 1;
         }

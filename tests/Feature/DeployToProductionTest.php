@@ -49,6 +49,13 @@ it('rejects non-release branches', function () {
         ->assertExitCode(1);
 });
 
+it('aborts when there are no release branches to choose from', function () {
+    $this->artisan('deploy-to-production')
+        ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
+        ->expectsOutput('No release branches found. Aborting.')
+        ->assertExitCode(1);
+})->group('dummy-git-repo');
+
 it('updates the version with minor', function () {
     $this->branchFourName = 'release/v1.1.0/87678';
     makeReleaseBranchForDeploy($this->originRepo, $this->repo, $this->defaultBranch, $this->branchFourName, 'README-87678.md');
