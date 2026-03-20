@@ -47,7 +47,15 @@ class DeployToProduction extends Command
 
         $branch = $this->argument('branch');
         if (! $branch) {
-            $branchesToChooseFrom = explode("\n", $this->runProcess('git branch --list "release/*" --format="%(refname:short)"'));
+            $branchesOutput = $this->runProcess('git branch --list "release/*" --format="%(refname:short)"');
+            $branchesToChooseFrom = array_values(array_filter(explode("\n", $branchesOutput), fn ($s) => $s !== ''));
+
+            if (empty($branchesToChooseFrom)) {
+                $this->error('No release branches found. Aborting.');
+
+                return 1;
+            }
+
             $branch = $this->anticipate('Which branch should we deploy?', $branchesToChooseFrom);
         }
 
@@ -60,10 +68,10 @@ class DeployToProduction extends Command
         $this->info("Deploying {$branch} to production.");
 
         $this->info('Checking out production branch.');
-        $this->runProcess("git checkout {$production}");
-
-        if ($this->runProcess('git branch --show-current') !== $production) {
-            $this->error("Failed to switch to {$production}. Aborting.");
+        try {
+            $this->runProcess("git checkout {$production}");
+        } catch (\Exception $e) {
+            $this->error("Failed to switch to {$production}: {$e->getMessage()}. Aborting.");
 
             return 1;
         }
@@ -108,10 +116,10 @@ class DeployToProduction extends Command
         $this->runProcess('git push --tags');
 
         $this->info('Checking out dev branch.');
-        $this->runProcess('git checkout dev');
-
-        if ($this->runProcess('git branch --show-current') !== 'dev') {
-            $this->error('Failed to switch to dev. Aborting.');
+        try {
+            $this->runProcess('git checkout dev');
+        } catch (\Exception $e) {
+            $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
 
             return 1;
         }
