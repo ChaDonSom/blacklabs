@@ -47,6 +47,12 @@ function something(): void
     // ..
 }
 
+function configureGitIdentity(string $repositoryPath): void
+{
+    exec(sprintf('git -C %s config user.name %s', escapeshellarg($repositoryPath), escapeshellarg('Blacklabs Tests')));
+    exec(sprintf('git -C %s config user.email %s', escapeshellarg($repositoryPath), escapeshellarg('tests@example.com')));
+}
+
 uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->git = app()->make(Git::class);
     $this->baseWorkingDirectory = base_path();
@@ -55,6 +61,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
     $this->originRepo = $this->git->init('/tmp/test-repo-origin');
+    configureGitIdentity('/tmp/test-repo-origin');
     chdir('/tmp/test-repo-origin');
     exec('npm init -y');
     touch('./README.md');
@@ -82,6 +89,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->originRepo->checkout($this->defaultBranch);
 
     $this->repo = $this->git->cloneRepository('/tmp/test-repo-origin', '/tmp/test-repo');
+    configureGitIdentity('/tmp/test-repo');
     $this->repo->checkout($this->branchOneName);
     $this->repo->checkout($this->branchTwoName);
     $this->repo->checkout('dev');

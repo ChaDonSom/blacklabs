@@ -24,7 +24,7 @@ class Deploy extends Command
      *
      * @var string
      */
-    protected $description = 'Deploy the blacklabs CLI to Packagist.';
+    protected $description = 'Prepare and tag a blacklabs CLI release.';
 
     /**
      * Execute the console command.
@@ -72,7 +72,7 @@ class Deploy extends Command
         };
         $this->info("New version number: {$version}");
 
-        $this->info('Deploying blacklabs CLI to Packagist.');
+        $this->info('Preparing blacklabs CLI release.');
 
         $this->info('Running tests...');
         $this->runProcess('php blacklabs test');
@@ -89,6 +89,7 @@ class Deploy extends Command
         $this->info('Pushing tag...');
         $repo->push();
         $repo->push('origin', ['--tags']);
+        $this->info("GitHub Actions will publish the PHAR and packed binary assets for {$version}.");
 
         $this->info('Done.');
     }

@@ -8,37 +8,71 @@ The Black Labs CLI, for our work.
 
 ## Requirements
 
-1. You must have `git` istalled on your machine
+1. The preferred downloadable binaries do not require PHP or Composer on the consuming machine.
+
+2. PHAR installs, Composer-global installs, and local development use PHP `8.4`.
+
+3. You must have `git` installed on your machine
 
     ```sh
     sudo apt install git-all
     ```
 
-2. You must have `gh` installed for the `create-release-branch` command (it makes a PR for that branch)
+4. You must have `gh` installed for the `create-release-branch` command (it makes a PR for that branch)
 
     See [the `gh` install instructions for Linux](https://github.com/cli/cli/blob/trunk/docs/install_linux.md)
 
-3. For the forge commands, you'll need to run `blacklabs app:store-forge-api-token <token>` first. It will be saved to disk, so you won't need to run it again (until your token expires).
+5. For the forge commands, you'll need to run `blacklabs app:store-forge-api-token <token>` first. It will be saved to disk, so you won't need to run it again (until your token expires).
 
 ## Install
 
-Make sure composer is in your system PATH, and has the folders it needs for global installs: [Composer Introduction, #Globally](https://getcomposer.org/doc/00-intro.md#globally)
+### Preferred: downloadable binary
+
+```sh
+curl -L https://github.com/ChaDonSom/blacklabs/releases/latest/download/blacklabs-linux-x64 -o blacklabs
+chmod +x blacklabs
+sudo mv blacklabs /usr/local/bin/blacklabs
+blacklabs --version
+```
+
+Release assets are intended to be the default install path:
+
+- `blacklabs-linux-x64`
+- `blacklabs-linux-arm64`
+- `blacklabs-macos-x64`
+- `blacklabs-macos-arm64`
+- `blacklabs-windows-x64.exe`
+
+### Fallback: downloadable PHAR
+
+```sh
+curl -L https://github.com/ChaDonSom/blacklabs/releases/latest/download/blacklabs -o blacklabs
+chmod +x blacklabs
+sudo mv blacklabs /usr/local/bin/blacklabs
+blacklabs --version
+```
+
+Keep the PHAR executable named `blacklabs` if you want `blacklabs self-update` to keep working against the tagged `builds/blacklabs` file stored in the repository.
+
+### Legacy fallback: Composer global install
+
+Make sure Composer is in your system PATH, and has the folders it needs for global installs: [Composer Introduction, #Globally](https://getcomposer.org/doc/00-intro.md#globally)
 
 ```sh
 composer global require blacklabs/blacklabs
 ```
 
+This path now installs the committed PHAR as the package binary while keeping the source application's Laravel dependencies in development-only Composer installs.
+
 ### Updating
 
-```sh
-composer global update blacklabs/blacklabs
-```
+- Downloadable binary: run `blacklabs self-update`. If that fails, replace it with the latest release asset for your platform.
+- PHAR: run `blacklabs self-update`. If that fails, replace it with the latest `blacklabs` release asset.
+- Composer global fallback:
 
-```sh
-blacklabs self-update
-```
-
-This command has been lately throwing an error about `zlib` or something. However, it doesn't appear to cause any problems.
+    ```sh
+    composer global update blacklabs/blacklabs
+    ```
 
 ## Usage
 
@@ -166,6 +200,14 @@ blacklabs checkout
 
 ## Contributing
 
+### Development install
+
+```sh
+composer install
+```
+
+The Composer package is intentionally thin for global installs: the source application's Laravel, testing, and packaging dependencies live in `require-dev` so end users are encouraged to run the bundled PHAR or downloadable binaries instead of a source-installed dependency graph.
+
 ### Deploy process
 
 ```sh
@@ -180,6 +222,9 @@ This command does:
 4. Commit it
 5. Create a tag for that version
 6. Push tags (includes the default branch)
+7. The tagged release publishes downloadable artifacts through GitHub Actions:
+    - `blacklabs` (PHAR)
+    - platform-specific packed binaries for Linux, macOS, and Windows
 
 ### Features I want to add
 
