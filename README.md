@@ -66,7 +66,7 @@ This path now installs the committed PHAR as the package binary while keeping th
 
 ### Updating
 
-- Downloadable binary: replace the installed binary with the latest release asset for your platform.
+- Downloadable binary: run `blacklabs self-update`. If that fails, replace it with the latest release asset for your platform.
 - PHAR: run `blacklabs self-update`. If that fails, replace it with the latest `blacklabs` release asset.
 - Composer global fallback:
 
