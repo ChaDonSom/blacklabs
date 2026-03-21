@@ -1,7 +1,6 @@
 <?php
 
 use CzProject\GitPhp\Git;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 it('exits without a level or issues', function () {
@@ -97,12 +96,12 @@ it('can skip missing issue branches', function () {
 })->group('dummy-git-repo');
 
 it('can use provided missing issue branches', function () {
-    $this->branchThreeName = 'different-name-' . Str::kebab(collect(fake()->words())->join('-'));
+    $this->branchThreeName = 'different-name-'.Str::kebab(collect(fake()->words())->join('-'));
     $this->repo->createBranch($this->branchThreeName, true);
     touch('./README-324.md');
     $this->repo->addAllChanges();
     $this->repo->commit('324 commit');
-    exec('git push --set-upstream origin ' . $this->branchThreeName);
+    exec('git push --set-upstream origin '.$this->branchThreeName);
 
     $this->artisan('create-release-branch patch 123,324')
         ->expectsOutput('Checking out dev branch.')
@@ -140,4 +139,14 @@ it('doesnt add vs from the tag', function () {
     $tags = explode("\n", $tags);
     $tags = array_filter($tags);
     expect(end($tags))->toBe('v1.1.0-0');
+})->group('dummy-git-repo');
+
+it('aborts when the release branch cannot be created', function () {
+    $this->artisan('create-release-branch major 123,45:6')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Creating release branch for version v2.0.0-0.')
+        ->expectsOutput('Failed to create branch release/v2.0.0-0/123-45:6. Aborting.')
+        ->assertExitCode(1)
+        ->run();
 })->group('dummy-git-repo');
