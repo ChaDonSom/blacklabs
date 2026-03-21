@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use App\Services\FindsIssueBranches;
 use App\Services\GetsConsoleSites;
+use App\Services\ManagesGitWorktrees;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
 use App\Services\UsesForgeHttp;
@@ -14,6 +15,7 @@ use LaravelZero\Framework\Commands\Command;
 class AddOrRemoveIssueFromSite extends Command
 {
     use GetsConsoleSites;
+    use ManagesGitWorktrees;
     use UsesForgeHttp;
     use RunsProcesses;
     use FindsIssueBranches;
@@ -82,7 +84,7 @@ class AddOrRemoveIssueFromSite extends Command
             $this->info('Adding issues to current branch...');
             $issuesFormattedForBranch = $issues->implode('-');
             $branchName = "release/$incrementedVersion/$issuesFormattedForBranch";
-            $this->runProcess("git checkout {$siteBranch}");
+            $this->checkoutBranch($siteBranch);
             $this->runProcess("git pull origin {$siteBranch}");
             $this->runProcess("git checkout -b {$branchName}");
 

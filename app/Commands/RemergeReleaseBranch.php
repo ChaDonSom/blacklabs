@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Services\FindsIssueBranches;
+use App\Services\ManagesGitWorktrees;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
 use App\Services\UsesGitHubCLI;
@@ -13,6 +14,7 @@ use function Laravel\Prompts\search;
 class RemergeReleaseBranch extends Command
 {
     use FindsIssueBranches;
+    use ManagesGitWorktrees;
     use MergesBranches;
     use RunsProcesses;
     use UsesGitHubCLI;
@@ -91,7 +93,7 @@ class RemergeReleaseBranch extends Command
         $this->info("Checking out the release branch {$releaseBranch}...");
         $wasAlreadyOnReleaseBranch = $this->isOnBranch($releaseBranch);
         if (! $wasAlreadyOnReleaseBranch) {
-            $this->runProcess('git checkout '.escapeshellarg($releaseBranch));
+            $this->checkoutBranch($releaseBranch);
         }
 
         // Make sure we're up to date with the remote release branch

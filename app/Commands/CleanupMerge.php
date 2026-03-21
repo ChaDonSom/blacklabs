@@ -4,6 +4,7 @@ namespace App\Commands;
 
 use App\Services\FindsReferencesBetweenFiles;
 use App\Services\ManagesCleanupBranches;
+use App\Services\ManagesGitWorktrees;
 use App\Services\MergesBranches;
 use Exception;
 use Illuminate\Console\Scheduling\Schedule;
@@ -14,6 +15,7 @@ class CleanupMerge extends Command
 {
     use ManagesCleanupBranches;
     use FindsReferencesBetweenFiles;
+    use ManagesGitWorktrees;
     use MergesBranches;
 
     /**
@@ -61,7 +63,7 @@ class CleanupMerge extends Command
         $this->info("Checking out the cleanup branch.");
         // Store the current branch to use in step 3.
         $currentBranch = $this->runProcess("git rev-parse --abbrev-ref HEAD");
-        $this->runProcess("git checkout $branch");
+        $this->checkoutBranch($branch);
         $tempBranch = "temp/cleanup-" . explode('-', $branch)[0];
         $this->runProcess("git checkout -b $tempBranch");
 
