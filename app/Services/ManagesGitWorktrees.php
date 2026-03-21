@@ -12,22 +12,35 @@ trait ManagesGitWorktrees
      * (interactive) or automatically switch if the worktree preference is 'always'.
      *
      * In non-interactive mode (--no-interaction) this falls back to the original
-     * failure unless the stored preference is 'always'.
+     * failure unless the stored preference is 'always', because confirm() uses its
+     * default value (false) when input is non-interactive.
      *
+     * @return bool True if a worktree switch occurred; false if a normal checkout happened.
      * @throws \Exception If the checkout fails and no worktree switch occurs.
      */
-    public function checkoutBranch(string $branch): void
+    public function checkoutBranch(string $branch): bool
     {
         try {
             $this->runProcess('git checkout ' . escapeshellarg($branch));
+
+            return false;
         } catch (\Exception $e) {
             $worktreePath = $this->parseWorktreePath($e->getMessage());
 
             if ($worktreePath !== null && $this->shouldSwitchToWorktree($branch, $worktreePath)) {
-                chdir($worktreePath);
+                if (! is_dir($worktreePath)) {
+                    $this->error("Git worktree path '{$worktreePath}' does not exist; falling back to original checkout failure.");
+                    throw $e;
+                }
+
+                if (! chdir($worktreePath)) {
+                    $this->error("Failed to switch to git worktree at '{$worktreePath}'; falling back to original checkout failure.");
+                    throw $e;
+                }
+
                 $this->info("Switched to worktree at {$worktreePath}.");
 
-                return;
+                return true;
             }
 
             throw $e;
@@ -36,15 +49,13 @@ trait ManagesGitWorktrees
 
     /**
      * Determine whether to switch to the existing worktree for the given branch.
+     * In non-interactive mode, confirm() uses its default value (false), so no
+     * prompt is shown and this returns false (falling back to the original failure).
      */
     protected function shouldSwitchToWorktree(string $branch, string $worktreePath): bool
     {
         if ($this->getWorktreePreference() === 'always') {
             return true;
-        }
-
-        if (isset($this->input) && ! $this->input->isInteractive()) {
-            return false;
         }
 
         $switch = $this->confirm(
