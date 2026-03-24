@@ -72,12 +72,14 @@ trait ManagesGitWorktrees
     }
 
     /**
-     * Parse the worktree path from a git "already checked out at" error message.
-     * Git error format: fatal: 'branch-name' is already checked out at '/path/to/worktree'
+     * Parse the worktree path from a git worktree conflict error message.
+     * Handles two formats depending on git version:
+     *   - git < 2.53: fatal: 'branch-name' is already checked out at '/path/to/worktree'
+     *   - git >= 2.53: fatal: 'branch-name' is already used by worktree at '/path/to/worktree'
      */
     protected function parseWorktreePath(string $error): ?string
     {
-        if (preg_match("/already checked out at ['\"]?([^'\"]+)['\"]?/", $error, $matches)) {
+        if (preg_match("/already (?:checked out|used by worktree) at ['\"]?([^'\"]+)['\"]?/", $error, $matches)) {
             return rtrim($matches[1]);
         }
 
