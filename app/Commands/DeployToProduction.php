@@ -48,7 +48,7 @@ class DeployToProduction extends Command
         $branch = $this->argument('branch');
         if (! $branch) {
             $branchesOutput = $this->runProcess('git branch --list "release/*" --format="%(refname:short)"');
-            $branchesToChooseFrom = array_values(array_filter(explode("\n", $branchesOutput), fn ($s) => $s !== ''));
+            $branchesToChooseFrom = array_values(array_filter(explode("\n", $branchesOutput), fn($s) => $s !== ''));
 
             if (empty($branchesToChooseFrom)) {
                 $this->error('No release branches found. Aborting.');
@@ -77,7 +77,7 @@ class DeployToProduction extends Command
         }
 
         // Get current version for later
-        $currentVersion = 'v'.$this->runProcess("node -p \"require('./package.json').version\"");
+        $currentVersion = 'v' . $this->runProcess("node -p \"require('./package.json').version\"");
 
         $this->info('Pulling latest production branch.');
         $this->runProcess('git pull');
@@ -90,20 +90,59 @@ class DeployToProduction extends Command
         Log::debug("Version from branch: $versionFromBranch");
         Log::debug("Current version: $currentVersion");
 
-        $versionBump = '?';
+        $versionBump = null;
         if ($this->isVersionNumber($versionFromBranch)) {
-            for ($i = 0; $i < strlen($versionFromBranch); $i++) {
-                Log::debug("Comparing {$versionFromBranch[$i]} to {$currentVersion[$i]}");
-                if ($versionFromBranch[$i] !== $currentVersion[$i]) {
-                    Log::debug("Found difference at $i.");
-                    $versionBump = $i === 1 ? 'major' : ($i === 3 ? 'minor' : 'patch');
-                    Log::debug("Version bump: $versionBump");
-                    break;
-                }
+            // Parse semantic versions properly
+            $currentParts = $this->parseVersion($currentVersion);
+            $newParts = $this->parseVersion($versionFromBranch);
+
+            Log::debug('Current version parts: ' . json_encode($currentParts));
+            Log::debug('New version parts: ' . json_encode($newParts));
+
+            if (! $currentParts || ! $newParts) {
+                Log::error('Failed to parse version numbers for bump calculation.', [
+                    'currentVersionRaw' => $currentVersion,
+                    'branchVersionRaw' => $versionFromBranch,
+                    'currentParts' => $currentParts,
+                    'newParts' => $newParts,
+                ]);
+                $this->error("Unable to determine version bump from {$currentVersion} to {$versionFromBranch}.");
+
+                return 1;
             }
+
+            if ($newParts['major'] > $currentParts['major']) {
+                $versionBump = 'major';
+            } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] > $currentParts['minor']) {
+                $versionBump = 'minor';
+            } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] === $currentParts['minor'] && $newParts['patch'] > $currentParts['patch']) {
+                $versionBump = 'patch';
+            } else {
+                Log::warning('Unable to determine a forward version bump.', [
+                    'currentVersionRaw' => $currentVersion,
+                    'branchVersionRaw' => $versionFromBranch,
+                    'currentParts' => $currentParts,
+                    'newParts' => $newParts,
+                ]);
+                $this->error("Release version {$versionFromBranch} must be greater than current version {$currentVersion}.");
+
+                return 1;
+            }
+
+            Log::debug("Version bump: $versionBump");
         } elseif ($this->isIssueBranch($versionFromBranch)) {
             Log::debug('Branch is an issue branch.');
             $versionBump = 'patch';
+        } else {
+            $this->error("Unable to determine version bump from branch {$branch}.");
+
+            return 1;
+        }
+
+        if (! $versionBump) {
+            $this->error("Unable to determine version bump from branch {$branch}.");
+
+            return 1;
         }
 
         // Tag it and push
@@ -137,7 +176,7 @@ class DeployToProduction extends Command
         $this->runProcess("git branch -D {$branch}");
         $this->runProcess("git push origin --delete {$branch}");
 
-        $this->info('New version: '.$this->runProcess('git describe --tags --abbrev=0'));
+        $this->info('New version: ' . $this->runProcess('git describe --tags --abbrev=0'));
         $this->info('Done!');
 
         return 0;
@@ -146,6 +185,29 @@ class DeployToProduction extends Command
     public function isVersionNumber($string)
     {
         return preg_match('/^v?\d+\.\d+\.\d+(-\d+)?$/', $string);
+    }
+
+    /**
+     * Parse a semantic version string into its components.
+     *
+     * @param  string  $version  Version string like "v1.2.3" or "v1.2.3-0"
+     * @return array|null Array with 'major', 'minor', 'patch' keys or null if invalid
+     */
+    private function parseVersion(string $version): ?array
+    {
+        // Remove 'v' prefix if present
+        $version = ltrim($version, 'v');
+
+        // Match semantic version pattern
+        if (preg_match('/^(\d+)\.(\d+)\.(\d+)(?:-\d+)?$/', $version, $matches)) {
+            return [
+                'major' => (int) $matches[1],
+                'minor' => (int) $matches[2],
+                'patch' => (int) $matches[3],
+            ];
+        }
+
+        return null;
     }
 
     /**

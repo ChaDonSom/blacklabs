@@ -55,7 +55,8 @@ function configureGitIdentity(string $repositoryPath): void
 
 uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->git = app()->make(Git::class);
-    chdir(base_path());
+    $this->baseWorkingDirectory = base_path();
+    chdir($this->baseWorkingDirectory);
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
@@ -94,7 +95,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     $this->repo->checkout('dev');
     chdir('/tmp/test-repo');
 })->afterEach(function () {
-    chdir(base_path());
+    chdir($this->baseWorkingDirectory);
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
 })->in('Feature');

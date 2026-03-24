@@ -23,12 +23,13 @@ trait ChoosesBranch {
     public function chooseBranch(?string $overrideBranch, ?string $message, ?bool $excludeCurrentBranch = false) {
         // The current branch
         $currentBranch = $this->runProcess('git rev-parse --abbrev-ref HEAD');
+        $defaultBranch = $this->getDefaultBranch();
 
         // Get the most recent branches using git in the current folder
         $branches = collect(explode("\n", shell_exec('git branch -r --sort=-committerdate')))
             ->map(fn ($branch) => trim(str_replace('origin/', '', $branch)))
             ->filter(fn ($branch) => $excludeCurrentBranch ? $branch != $currentBranch : true)
-            ->filter(fn ($branch) => $branch != 'HEAD' && $branch != 'master')
+            ->filter(fn ($branch) => $branch != 'HEAD' && $branch != $defaultBranch)
             ->values();
 
         return $overrideBranch ?? search(

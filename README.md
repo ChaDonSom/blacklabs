@@ -70,9 +70,9 @@ This path now installs the committed PHAR as the package binary while keeping th
 - PHAR: run `blacklabs self-update`. If that fails, replace it with the latest `blacklabs` release asset.
 - Composer global fallback:
 
-  ```sh
-  composer global update blacklabs/blacklabs
-  ```
+    ```sh
+    composer global update blacklabs/blacklabs
+    ```
 
 ## Usage
 
@@ -94,17 +94,14 @@ blacklabs create-release-branch v0.18.1 1001,1002,1003,884,732,1234
 
 > **Note**
 >
-> -   Use `patch`, or the next 'patch' version number, for hotfix or bugfix releases.
->
-> -   Use `minor`, or the next 'minor' version number, for feature releases.
->
-> -   We don't have a true purpose yet for the 'major' number, but the industry standard for Semantic Versioning is: use `major`, or the next 'major' version number, for breaking changes.
+> - Use `patch`, or the next 'patch' version number, for hotfix or bugfix releases.
+> - Use `minor`, or the next 'minor' version number, for feature releases.
+> - We don't have a true purpose yet for the 'major' number, but the industry standard for Semantic Versioning is: use `major`, or the next 'major' version number, for breaking changes.
 
 1. First, it checks out the `dev` branch and pulls it, to make sure it's up to date.
 2. Then, it makes a new branch from `dev` like `release/v0.18.1/1001-1002-1003-884-732-1234`
     1. If it finds an existing branch by that name, it will ask you if you want to delete it and remake it. If you respond affirmative, it will do so, if not, it will exit.
 3. Then, it goes through each issue number provided and tries to find the branch for it.
-
     1. If it can't find a branch with that issue number in it, it will skip that issue for you to manually merge it in later.
     2. If it finds more than one branch with that issue number in it, it will ask you which one to use.
     3. Then, having found the branch to merge, it merges it from `origin`.
@@ -219,15 +216,15 @@ php blacklabs app:deploy
 
 This command does:
 
-1. Make sure you're on master
+1. Make sure you're on the repo's default branch
 2. Run tests `php blacklabs test`
 3. build `php blacklabs app:build` - give it the version
 4. Commit it
 5. Create a tag for that version
-6. Push tags (includes the master branch)
+6. Push tags (includes the default branch)
 7. The tagged release publishes downloadable artifacts through GitHub Actions:
-   - `blacklabs` (PHAR)
-   - platform-specific packed binaries for Linux, macOS, and Windows
+    - `blacklabs` (PHAR)
+    - platform-specific packed binaries for Linux, macOS, and Windows
 
 ### Features I want to add
 
