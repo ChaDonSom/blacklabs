@@ -27,11 +27,6 @@ trait ManagesGitWorktrees
         $worktreePath = $this->findWorktreeForBranch($branch);
 
         if ($worktreePath !== null && $this->shouldSwitchToWorktree($branch, $worktreePath)) {
-            if (! is_dir($worktreePath)) {
-                $this->error("Git worktree path '{$worktreePath}' does not exist.");
-                throw new \Exception("Branch '{$branch}' is already checked out in worktree at '{$worktreePath}' but that path no longer exists.");
-            }
-
             if (! chdir($worktreePath)) {
                 $this->error("Failed to switch to git worktree at '{$worktreePath}'.");
                 throw new \Exception("Branch '{$branch}' is already checked out in worktree at '{$worktreePath}' but could not switch to that directory.");
