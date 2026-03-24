@@ -7,9 +7,13 @@ use Illuminate\Support\Facades\Storage;
 trait ManagesGitWorktrees
 {
     /**
-     * Try to check out the given branch. If the checkout fails because the branch
-     * is already checked out in a worktree, offer to switch to that worktree
-     * (interactive) or automatically switch if the worktree preference is 'always'.
+     * Try to check out the given branch. If the branch is already checked out in
+     * another worktree, offer to switch to that worktree (interactive) or
+     * automatically switch if the worktree preference is 'always'.
+     *
+     * Uses `git worktree list --porcelain` (a stable, machine-readable interface)
+     * to detect conflicts before attempting checkout, avoiding reliance on git's
+     * human-readable error messages which can change between git versions.
      *
      * In non-interactive mode (--no-interaction) this falls back to the original
      * failure unless the stored preference is 'always', because confirm() uses its
@@ -20,31 +24,32 @@ trait ManagesGitWorktrees
      */
     public function checkoutBranch(string $branch): bool
     {
-        try {
-            $this->runProcess('git checkout ' . escapeshellarg($branch));
+        $worktreePath = $this->findWorktreeForBranch($branch);
 
-            return false;
-        } catch (\Exception $e) {
-            $worktreePath = $this->parseWorktreePath($e->getMessage());
-
-            if ($worktreePath !== null && $this->shouldSwitchToWorktree($branch, $worktreePath)) {
-                if (! is_dir($worktreePath)) {
-                    $this->error("Git worktree path '{$worktreePath}' does not exist; falling back to original checkout failure.");
-                    throw $e;
-                }
-
-                if (! chdir($worktreePath)) {
-                    $this->error("Failed to switch to git worktree at '{$worktreePath}'; falling back to original checkout failure.");
-                    throw $e;
-                }
-
-                $this->info("Switched to worktree at {$worktreePath}.");
-
-                return true;
+        if ($worktreePath !== null && $this->shouldSwitchToWorktree($branch, $worktreePath)) {
+            if (! is_dir($worktreePath)) {
+                $this->error("Git worktree path '{$worktreePath}' does not exist.");
+                throw new \Exception("Branch '{$branch}' is already checked out in worktree at '{$worktreePath}' but that path no longer exists.");
             }
 
-            throw $e;
+            if (! chdir($worktreePath)) {
+                $this->error("Failed to switch to git worktree at '{$worktreePath}'.");
+                throw new \Exception("Branch '{$branch}' is already checked out in worktree at '{$worktreePath}' but could not switch to that directory.");
+            }
+
+            $this->info("Switched to worktree at {$worktreePath}.");
+
+            return true;
         }
+
+        if ($worktreePath !== null) {
+            // User declined to switch; throw without attempting the checkout (which would fail anyway)
+            throw new \Exception("Branch '{$branch}' is already checked out in another worktree at '{$worktreePath}'.");
+        }
+
+        $this->runProcess('git checkout ' . escapeshellarg($branch));
+
+        return false;
     }
 
     /**
@@ -72,15 +77,37 @@ trait ManagesGitWorktrees
     }
 
     /**
-     * Parse the worktree path from a git worktree conflict error message.
-     * Handles two formats depending on git version:
-     *   - git < 2.53: fatal: 'branch-name' is already checked out at '/path/to/worktree'
-     *   - git >= 2.53: fatal: 'branch-name' is already used by worktree at '/path/to/worktree'
+     * Find the worktree path that has the given branch checked out, excluding the
+     * current worktree. Uses `git worktree list --porcelain` which is a stable,
+     * machine-readable interface available since git 2.7.0 (2016).
+     *
+     * Returns null if the branch is not checked out in any other worktree.
      */
-    protected function parseWorktreePath(string $error): ?string
+    protected function findWorktreeForBranch(string $branch): ?string
     {
-        if (preg_match("/already (?:checked out|used by worktree) at ['\"]?([^'\"]+)['\"]?/", $error, $matches)) {
-            return rtrim($matches[1]);
+        try {
+            $output = $this->runProcess('git worktree list --porcelain');
+            $currentWorktree = $this->runProcess('git rev-parse --show-toplevel');
+        } catch (\Exception $e) {
+            return null;
+        }
+
+        foreach (preg_split('/\R\R/', trim($output)) as $block) {
+            $worktreePath = null;
+            $hasBranch = false;
+
+            foreach (preg_split('/\R/', trim($block)) as $line) {
+                $line = trim($line);
+                if (str_starts_with($line, 'worktree ')) {
+                    $worktreePath = substr($line, 9);
+                } elseif ($line === "branch refs/heads/{$branch}") {
+                    $hasBranch = true;
+                }
+            }
+
+            if ($worktreePath && $hasBranch && $worktreePath !== $currentWorktree) {
+                return $worktreePath;
+            }
         }
 
         return null;
