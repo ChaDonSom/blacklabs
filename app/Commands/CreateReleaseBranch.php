@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Services\FindsIssueBranches;
+use App\Services\ManagesGitWorktrees;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
 use CzProject\GitPhp\Git;
@@ -13,6 +14,7 @@ use LaravelZero\Framework\Commands\Command;
 class CreateReleaseBranch extends Command
 {
     use FindsIssueBranches;
+    use ManagesGitWorktrees;
     use MergesBranches;
     use RunsProcesses;
 
@@ -52,14 +54,14 @@ class CreateReleaseBranch extends Command
         $issues = $this->argument('issues');
 
         $this->info('Checking out dev branch.');
-        $repo = $git->open(getcwd());
         try {
-            $repo->checkout('dev');
+            $this->checkoutBranch('dev');
         } catch (\Exception $e) {
             $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
 
             return 1;
         }
+        $repo = $git->open(getcwd());
 
         $this->info('Pulling latest dev branch.');
         $repo->pull();

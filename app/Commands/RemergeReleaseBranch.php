@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Services\FindsIssueBranches;
+use App\Services\ManagesGitWorktrees;
 use App\Services\MergesBranches;
 use App\Services\RunsProcesses;
 use App\Services\UsesGitHubCLI;
@@ -13,6 +14,7 @@ use function Laravel\Prompts\search;
 class RemergeReleaseBranch extends Command
 {
     use FindsIssueBranches;
+    use ManagesGitWorktrees;
     use MergesBranches;
     use RunsProcesses;
     use UsesGitHubCLI;
@@ -90,8 +92,9 @@ class RemergeReleaseBranch extends Command
         // Check out the release branch
         $this->info("Checking out the release branch {$releaseBranch}...");
         $wasAlreadyOnReleaseBranch = $this->isOnBranch($releaseBranch);
+        $switchedToWorktree = false;
         if (! $wasAlreadyOnReleaseBranch) {
-            $this->runProcess('git checkout '.escapeshellarg($releaseBranch));
+            $switchedToWorktree = $this->checkoutBranch($releaseBranch);
         }
 
         // Make sure we're up to date with the remote release branch
@@ -113,7 +116,7 @@ class RemergeReleaseBranch extends Command
             } else {
                 $this->error('Failed to apply the version for some other reason: '.$e->getMessage());
                 $this->error('Please set it up manually, then push the branch and tags.');
-                if (! $wasAlreadyOnReleaseBranch) {
+                if (! $wasAlreadyOnReleaseBranch && ! $switchedToWorktree) {
                     $this->runProcess('git checkout -');
                 }
 
@@ -126,8 +129,8 @@ class RemergeReleaseBranch extends Command
         $this->info('Pushing the branch and the tag...');
         $this->runProcess('git push origin '.escapeshellarg($releaseBranch).' --follow-tags');
 
-        // Check back out to the original branch
-        if (! $wasAlreadyOnReleaseBranch) {
+        // Check back out to the original branch (only if we did a normal checkout, not a worktree switch)
+        if (! $wasAlreadyOnReleaseBranch && ! $switchedToWorktree) {
             $this->runProcess('git checkout -');
         }
 

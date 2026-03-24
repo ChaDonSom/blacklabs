@@ -3,6 +3,7 @@
 namespace App\Commands;
 
 use App\Services\ChoosesBranch;
+use App\Services\ManagesGitWorktrees;
 use App\Services\RunsProcesses;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Collection;
@@ -11,6 +12,7 @@ use LaravelZero\Framework\Commands\Command;
 class Checkout extends Command
 {
     use ChoosesBranch;
+    use ManagesGitWorktrees;
     use RunsProcesses;
 
     /**
@@ -67,7 +69,7 @@ class Checkout extends Command
         // Check out to the chosen branch
         $this->info("\nChecking out to {$branch}...");
         try {
-            $this->runProcess("git checkout {$branch}");
+            $this->checkoutBranch($branch);
         } catch (\Exception $e) {
             $this->error("Error checking out to {$branch}: {$e->getMessage()}");
             return 1;

@@ -2,6 +2,7 @@
 
 namespace App\Commands;
 
+use App\Services\ManagesGitWorktrees;
 use App\Services\RunsProcesses;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Support\Facades\Log;
@@ -10,6 +11,7 @@ use LaravelZero\Framework\Commands\Command;
 
 class DeployToProduction extends Command
 {
+    use ManagesGitWorktrees;
     use RunsProcesses;
 
     /**
@@ -69,7 +71,7 @@ class DeployToProduction extends Command
 
         $this->info('Checking out production branch.');
         try {
-            $this->runProcess("git checkout {$production}");
+            $this->checkoutBranch($production);
         } catch (\Exception $e) {
             $this->error("Failed to switch to {$production}: {$e->getMessage()}. Aborting.");
 
@@ -156,7 +158,7 @@ class DeployToProduction extends Command
 
         $this->info('Checking out dev branch.');
         try {
-            $this->runProcess('git checkout dev');
+            $this->checkoutBranch('dev');
         } catch (\Exception $e) {
             $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
 

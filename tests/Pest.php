@@ -60,6 +60,7 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     // Force remove the directory
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
+    exec('rm -rf /tmp/test-worktree');
     $this->originRepo = $this->git->init('/tmp/test-repo-origin');
     configureGitIdentity('/tmp/test-repo-origin');
     chdir('/tmp/test-repo-origin');
@@ -98,4 +99,6 @@ uses()->group('dummy-git-repo')->beforeEach(function () {
     chdir($this->baseWorkingDirectory);
     exec('rm -rf /tmp/test-repo');
     exec('rm -rf /tmp/test-repo-origin');
+    exec('rm -rf /tmp/test-worktree');
+    \Illuminate\Support\Facades\Storage::delete('worktree-preference.txt');
 })->in('Feature');
