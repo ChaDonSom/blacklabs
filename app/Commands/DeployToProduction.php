@@ -33,30 +33,51 @@ class DeployToProduction extends Command
      */
     public function handle()
     {
+        $production = 'forge-production';
+
         if (! $this->option('force')) {
-            $production = 'forge-production';
             $this->warn("[WARNING] Only run this command if you know what you're doing.");
             $inputName = $this->ask('Please type the name of the production branch to continue.');
             if ($inputName !== $production) {
                 $this->error("You didn't type the name of the production branch correctly. Aborting.");
 
-                return;
+                return 1;
             }
         }
 
         $branch = $this->argument('branch');
         if (! $branch) {
-            $branchesToChooseFrom = explode("\n", $this->runProcess('git branch --list "release/*" --format="%(refname:short)"'));
+            $branchesOutput = $this->runProcess('git branch --list "release/*" --format="%(refname:short)"');
+            $branchesToChooseFrom = array_values(array_filter(explode("\n", $branchesOutput), fn($s) => $s !== ''));
+
+            if (empty($branchesToChooseFrom)) {
+                $this->error('No release branches found. Aborting.');
+
+                return 1;
+            }
+
             $branch = $this->anticipate('Which branch should we deploy?', $branchesToChooseFrom);
+        }
+
+        if (! str_starts_with($branch, 'release/')) {
+            $this->error('Only release branches can be deployed to production. Aborting.');
+
+            return 1;
         }
 
         $this->info("Deploying {$branch} to production.");
 
         $this->info('Checking out production branch.');
-        $this->runProcess("git checkout {$production}");
+        try {
+            $this->runProcess("git checkout {$production}");
+        } catch (\Exception $e) {
+            $this->error("Failed to switch to {$production}: {$e->getMessage()}. Aborting.");
+
+            return 1;
+        }
 
         // Get current version for later
-        $currentVersion = 'v'.$this->runProcess("node -p \"require('./package.json').version\"");
+        $currentVersion = 'v' . $this->runProcess("node -p \"require('./package.json').version\"");
 
         $this->info('Pulling latest production branch.');
         $this->runProcess('git pull');
@@ -75,8 +96,8 @@ class DeployToProduction extends Command
             $currentParts = $this->parseVersion($currentVersion);
             $newParts = $this->parseVersion($versionFromBranch);
 
-            Log::debug('Current version parts: '.json_encode($currentParts));
-            Log::debug('New version parts: '.json_encode($newParts));
+            Log::debug('Current version parts: ' . json_encode($currentParts));
+            Log::debug('New version parts: ' . json_encode($newParts));
 
             if (! $currentParts || ! $newParts) {
                 Log::error('Failed to parse version numbers for bump calculation.', [
@@ -134,7 +155,13 @@ class DeployToProduction extends Command
         $this->runProcess('git push --tags');
 
         $this->info('Checking out dev branch.');
-        $this->runProcess('git checkout dev');
+        try {
+            $this->runProcess('git checkout dev');
+        } catch (\Exception $e) {
+            $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
+
+            return 1;
+        }
 
         $this->info('Pulling latest dev branch.');
         $this->runProcess('git pull');
@@ -149,8 +176,10 @@ class DeployToProduction extends Command
         $this->runProcess("git branch -D {$branch}");
         $this->runProcess("git push origin --delete {$branch}");
 
-        $this->info('New version: '.$this->runProcess('git describe --tags --abbrev=0'));
+        $this->info('New version: ' . $this->runProcess('git describe --tags --abbrev=0'));
         $this->info('Done!');
+
+        return 0;
     }
 
     public function isVersionNumber($string)
