@@ -40,7 +40,10 @@ class SelfUpdate extends Command
 
         app(PharUpdater::class)->update($this->output);
 
-        return 0;
+        // Exit immediately so PHP does not try to autoload further classes
+        // from the now-replaced Phar file, which would cause zlib/corruption
+        // errors during framework shutdown.
+        exit(0);
     }
 
     protected function updatePackedBinary()
