@@ -137,3 +137,34 @@ it('fails when the release branch name does not contain a supported version form
         ->expectsOutput('Unable to determine version bump from branch release/not-a-version/99999.')
         ->assertExitCode(1);
 });
+
+it('deletes the release branch worktree when the worktree is clean', function () {
+    $releaseBranch = 'release/v1.0.1/456';
+    makeReleaseBranchForDeploy($this->originRepo, $this->repo, $this->defaultBranch, $releaseBranch, 'README-456-release.md');
+
+    $worktreePath = '/tmp/test-worktree';
+    exec('git -C /tmp/test-repo worktree add ' . escapeshellarg($worktreePath) . ' ' . escapeshellarg($releaseBranch));
+
+    $this->artisan('deploy-to-production ' . $releaseBranch)
+        ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
+        ->assertExitCode(0);
+
+    expect(is_dir($worktreePath))->toBeFalse();
+})->group('dummy-git-repo');
+
+it('warns and skips local deletion when the release branch worktree has unsaved changes', function () {
+    $releaseBranch = 'release/v1.0.1/456';
+    makeReleaseBranchForDeploy($this->originRepo, $this->repo, $this->defaultBranch, $releaseBranch, 'README-456-release.md');
+
+    $worktreePath = '/tmp/test-worktree';
+    exec('git -C /tmp/test-repo worktree add ' . escapeshellarg($worktreePath) . ' ' . escapeshellarg($releaseBranch));
+    // Create an untracked file to make the worktree dirty
+    touch($worktreePath . '/dirty-file.txt');
+
+    $this->artisan('deploy-to-production ' . $releaseBranch)
+        ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
+        ->expectsOutput("Branch '{$releaseBranch}' is checked out at '{$worktreePath}' with unsaved changes. Leaving it here for you.")
+        ->assertExitCode(0);
+
+    expect(is_dir($worktreePath))->toBeTrue();
+})->group('dummy-git-repo');
