@@ -39,8 +39,11 @@ class CreateReleaseBranch extends Command
      */
     public function handle(Git $git)
     {
-        $level = $this->argument('level');
-        if ($this->isVersionNumber($level)) {
+        $originalLevel = $this->argument('level');
+        $isExplicitVersion = $this->isVersionNumber($originalLevel);
+
+        $level = $originalLevel;
+        if ($isExplicitVersion) {
             // If the level is a version number and doesn't have -x in it, we'll add that.
             if (! str_contains($level, '-')) {
                 $level = "{$level}-0";
@@ -56,7 +59,7 @@ class CreateReleaseBranch extends Command
         $this->info('Checking out dev branch.');
         try {
             $this->checkoutBranch('dev');
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             $this->error("Failed to switch to dev: {$e->getMessage()}. Aborting.");
 
             return 1;
@@ -70,13 +73,28 @@ class CreateReleaseBranch extends Command
         // version change until we've merged the issue branches in
         Log::debug("Version: {$version}");
 
+        if ($isExplicitVersion) {
+            // For explicit versions, fail fast if already reserved remotely.
+            if ($this->isVersionReservedRemotely($version)) {
+                $this->error("Version {$version} is already reserved remotely. Please choose a different version.");
+
+                return 1;
+            }
+        } else {
+            // For level-based versions, advance until we find an unreserved version.
+            while ($this->isVersionReservedRemotely($version)) {
+                $this->warn("Version {$version} is already reserved remotely. Trying next version...");
+                $version = $this->nextVersionForLevel($version, $level);
+            }
+        }
+
         $this->info("Creating release branch for version {$version}.");
 
         $issuesFormattedForBranch = str_replace(',', '-', $issues);
         $branchName = "release/{$version}/{$issuesFormattedForBranch}";
         try {
             $this->runProcess("git checkout -b {$branchName}");
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             if (str_contains($e->getMessage(), 'already exists')) {
                 $shouldDeleteIt = $this->confirm("Branch {$branchName} already exists. Should we delete it?", true);
                 if ($shouldDeleteIt) {
@@ -110,7 +128,7 @@ class CreateReleaseBranch extends Command
         // Officially apply the version
         try {
             $this->runProcess("npm version $version"); // This will commit the version change
-        } catch (\Exception $e) {
+        } catch (Exception $e) {
             if (str_contains($e->getMessage(), 'already exists')) {
                 $this->warn('The git tag already exists. Please set it up manually.');
             } else {
@@ -122,8 +140,7 @@ class CreateReleaseBranch extends Command
         }
 
         $this->info('Pushing release branch to origin.');
-        $this->runProcess("git push origin $branchName");
-        $this->runProcess('git push origin --tags');
+        $this->runProcess("git push --atomic origin {$branchName} {$version}");
 
         $this->info('Creating release PR.');
         $prBody = '- #'.implode("\n- #", $issuesArray)."\n";
@@ -138,7 +155,7 @@ class CreateReleaseBranch extends Command
                         --head {$branchName} \
                         --assignee @me
                 bash);
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 $this->warn('Failed to create PR. Please create it manually.');
             }
         }
@@ -147,6 +164,43 @@ class CreateReleaseBranch extends Command
         $this->info("Branch: {$branchName}");
 
         return 0;
+    }
+
+    /**
+     * Check whether a version is already reserved on the remote (tag or release branch exists).
+     */
+    private function isVersionReservedRemotely(string $version): bool
+    {
+        // Strip prerelease counter (v0.57.0-0 → v0.57.0) to catch any variant of that base version.
+        $baseVersion = preg_replace('/-\d+$/', '', $version);
+
+        // Check for any remote tag that starts with the base version string.
+        $remoteTags = $this->runProcess("git ls-remote --tags origin 'refs/tags/{$baseVersion}*'");
+        if (! empty($remoteTags)) {
+            return true;
+        }
+
+        // Check for any remote release branch for the same base version.
+        $remoteBranches = $this->runProcess("git ls-remote --heads origin 'refs/heads/release/{$baseVersion}*'");
+
+        return ! empty($remoteBranches);
+    }
+
+    /**
+     * Given a reserved candidate version and the original bump level, return the next candidate to try.
+     */
+    private function nextVersionForLevel(string $version, string $level): string
+    {
+        $base = preg_replace('/-\d+$/', '', ltrim($version, 'v'));
+        [$major, $minor, $patch] = array_map('intval', explode('.', $base));
+
+        if (str_contains($level, 'major')) {
+            return 'v'.($major + 1).'.0.0-0';
+        } elseif (str_contains($level, 'minor')) {
+            return 'v'.$major.'.'.($minor + 1).'.0-0';
+        } else {
+            return 'v'.$major.'.'.$minor.'.'.($patch + 1).'-0';
+        }
     }
 
     /**

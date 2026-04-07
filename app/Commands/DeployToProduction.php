@@ -50,7 +50,7 @@ class DeployToProduction extends Command
         $branch = $this->argument('branch');
         if (! $branch) {
             $branchesOutput = $this->runProcess('git branch --list "release/*" --format="%(refname:short)"');
-            $branchesToChooseFrom = array_values(array_filter(explode("\n", $branchesOutput), fn($s) => $s !== ''));
+            $branchesToChooseFrom = array_values(array_filter(explode("\n", $branchesOutput), fn ($s) => $s !== ''));
 
             if (empty($branchesToChooseFrom)) {
                 $this->error('No release branches found. Aborting.');
@@ -79,7 +79,7 @@ class DeployToProduction extends Command
         }
 
         // Get current version for later
-        $currentVersion = 'v' . $this->runProcess("node -p \"require('./package.json').version\"");
+        $currentVersion = 'v'.$this->runProcess("node -p \"require('./package.json').version\"");
 
         $this->info('Pulling latest production branch.');
         $this->runProcess('git pull');
@@ -92,14 +92,16 @@ class DeployToProduction extends Command
         Log::debug("Version from branch: $versionFromBranch");
         Log::debug("Current version: $currentVersion");
 
-        $versionBump = null;
+        // Determine the exact target version from the branch name.
+        // Strip the prerelease counter (v0.58.0-0 → v0.58.0) to get the final production version.
+        $targetVersion = null;
         if ($this->isVersionNumber($versionFromBranch)) {
             // Parse semantic versions properly
             $currentParts = $this->parseVersion($currentVersion);
             $newParts = $this->parseVersion($versionFromBranch);
 
-            Log::debug('Current version parts: ' . json_encode($currentParts));
-            Log::debug('New version parts: ' . json_encode($newParts));
+            Log::debug('Current version parts: '.json_encode($currentParts));
+            Log::debug('New version parts: '.json_encode($newParts));
 
             if (! $currentParts || ! $newParts) {
                 Log::error('Failed to parse version numbers for bump calculation.', [
@@ -113,13 +115,12 @@ class DeployToProduction extends Command
                 return 1;
             }
 
-            if ($newParts['major'] > $currentParts['major']) {
-                $versionBump = 'major';
-            } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] > $currentParts['minor']) {
-                $versionBump = 'minor';
-            } elseif ($newParts['major'] === $currentParts['major'] && $newParts['minor'] === $currentParts['minor'] && $newParts['patch'] > $currentParts['patch']) {
-                $versionBump = 'patch';
-            } else {
+            $isForward =
+                $newParts['major'] > $currentParts['major'] ||
+                ($newParts['major'] === $currentParts['major'] && $newParts['minor'] > $currentParts['minor']) ||
+                ($newParts['major'] === $currentParts['major'] && $newParts['minor'] === $currentParts['minor'] && $newParts['patch'] > $currentParts['patch']);
+
+            if (! $isForward) {
                 Log::warning('Unable to determine a forward version bump.', [
                     'currentVersionRaw' => $currentVersion,
                     'branchVersionRaw' => $versionFromBranch,
@@ -131,26 +132,32 @@ class DeployToProduction extends Command
                 return 1;
             }
 
-            Log::debug("Version bump: $versionBump");
+            // Strip prerelease counter to get the exact final production version.
+            $targetVersion = preg_replace('/-\d+$/', '', (string) $versionFromBranch);
+            if (! str_starts_with($targetVersion, 'v')) {
+                $targetVersion = "v{$targetVersion}";
+            }
+
+            Log::debug("Target version: $targetVersion");
         } elseif ($this->isIssueBranch($versionFromBranch)) {
-            Log::debug('Branch is an issue branch.');
-            $versionBump = 'patch';
+            Log::debug('Branch is an issue branch; defaulting to patch bump.');
+            $targetVersion = 'patch';
         } else {
             $this->error("Unable to determine version bump from branch {$branch}.");
 
             return 1;
         }
 
-        if (! $versionBump) {
+        if (! $targetVersion) {
             $this->error("Unable to determine version bump from branch {$branch}.");
 
             return 1;
         }
 
         // Tag it and push
-        $this->info("Running $versionBump from $currentVersion.");
-        Log::debug("Running $versionBump from $currentVersion.");
-        $this->runProcess("npm version {$versionBump}");
+        $this->info("Setting version from {$currentVersion} to {$targetVersion}.");
+        Log::debug("Setting version from {$currentVersion} to {$targetVersion}.");
+        $this->runProcess("npm version {$targetVersion}");
 
         $this->info('Pushing production branch.');
         $this->runProcess('git push');
@@ -178,7 +185,7 @@ class DeployToProduction extends Command
         $this->runProcess("git branch -D {$branch}");
         $this->runProcess("git push origin --delete {$branch}");
 
-        $this->info('New version: ' . $this->runProcess('git describe --tags --abbrev=0'));
+        $this->info('New version: '.$this->runProcess('git describe --tags --abbrev=0'));
         $this->info('Done!');
 
         return 0;

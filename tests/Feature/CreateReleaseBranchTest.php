@@ -6,7 +6,7 @@ use Illuminate\Support\Str;
 it('exits without a level or issues', function () {
     try {
         $this->artisan('create-release-branch');
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         expect($e->getMessage())->toContain('Not enough arguments (missing: "level, issues")');
     }
 });
@@ -14,7 +14,7 @@ it('exits without a level or issues', function () {
 it('exits with a level but no issues', function () {
     try {
         $this->artisan('create-release-branch minor');
-    } catch (\Exception $e) {
+    } catch (Exception $e) {
         expect($e->getMessage())->toContain('Not enough arguments (missing: "issues")');
     }
 });
@@ -147,6 +147,54 @@ it('aborts when the release branch cannot be created', function () {
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Creating release branch for version v2.0.0-0.')
         ->expectsOutput('Failed to create branch release/v2.0.0-0/123-45:6. Aborting.')
+        ->assertExitCode(1)
+        ->run();
+})->group('dummy-git-repo');
+
+it('advances to the next version when the computed version is already reserved on the remote', function () {
+    // Create a tag v2.0.0-0 directly in the origin to simulate a parallel release that reserved it.
+    exec('git -C /tmp/test-repo-origin tag v2.0.0-0');
+
+    $this->artisan('create-release-branch major 123,456')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Version v2.0.0-0 is already reserved remotely. Trying next version...')
+        ->expectsOutput('Creating release branch for version v3.0.0-0.')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Pushing release branch to origin.')
+        ->expectsOutput('Creating release PR.')
+        ->expectsOutput('Done.')
+        ->expectsOutput('Branch: release/v3.0.0-0/123-456')
+        ->assertExitCode(0)
+        ->run();
+})->group('dummy-git-repo');
+
+it('advances to the next version when a remote release branch reserves the version', function () {
+    // Create a release branch in the origin to simulate a parallel release that reserved v2.0.0-0.
+    $this->originRepo->createBranch('release/v2.0.0-0/999');
+
+    $this->artisan('create-release-branch major 123,456')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Version v2.0.0-0 is already reserved remotely. Trying next version...')
+        ->expectsOutput('Creating release branch for version v3.0.0-0.')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Pushing release branch to origin.')
+        ->expectsOutput('Creating release PR.')
+        ->expectsOutput('Done.')
+        ->expectsOutput('Branch: release/v3.0.0-0/123-456')
+        ->assertExitCode(0)
+        ->run();
+})->group('dummy-git-repo');
+
+it('fails fast when an explicit version is already reserved on the remote', function () {
+    // Create a tag v1.5.0-0 directly in the origin to simulate a reserved version.
+    exec('git -C /tmp/test-repo-origin tag v1.5.0-0');
+
+    $this->artisan('create-release-branch v1.5.0 123,456')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Version v1.5.0-0 is already reserved remotely. Please choose a different version.')
         ->assertExitCode(1)
         ->run();
 })->group('dummy-git-repo');
