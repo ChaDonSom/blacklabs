@@ -171,19 +171,30 @@ class CreateReleaseBranch extends Command
      */
     private function isVersionReservedRemotely(string $version): bool
     {
-        // Strip prerelease counter (v0.57.0-0 → v0.57.0) to catch any variant of that base version.
+        // Strip prerelease counter (v0.57.0-0 → v0.57.0) to check the exact base version and its prerelease variants.
         $baseVersion = preg_replace('/-\d+$/', '', $version);
 
-        // Check for any remote tag that starts with the base version string.
-        $remoteTags = $this->runProcess("git ls-remote --tags origin 'refs/tags/{$baseVersion}*'");
-        if (! empty($remoteTags)) {
+        // Check for the exact remote tag for this base version.
+        $exactTag = $this->runProcess("git ls-remote --tags origin 'refs/tags/{$baseVersion}'");
+        if (! empty($exactTag)) {
             return true;
         }
 
-        // Check for any remote release branch for the same base version.
-        $remoteBranches = $this->runProcess("git ls-remote --heads origin 'refs/heads/release/{$baseVersion}*'");
+        // Check for any prerelease tags derived from this base version (e.g. v1.0.1-0, v1.0.1-1).
+        $prereleaseTags = $this->runProcess("git ls-remote --tags origin 'refs/tags/{$baseVersion}-*'");
+        if (! empty($prereleaseTags)) {
+            return true;
+        }
 
-        return ! empty($remoteBranches);
+        // Check for any remote release branch that uses this exact base version (e.g. release/v1.0.1/... or release/v1.0.1-0/...).
+        $exactBranches = $this->runProcess("git ls-remote --heads origin 'refs/heads/release/{$baseVersion}/*'");
+        if (! empty($exactBranches)) {
+            return true;
+        }
+
+        $prereleaseBranches = $this->runProcess("git ls-remote --heads origin 'refs/heads/release/{$baseVersion}-*'");
+
+        return ! empty($prereleaseBranches);
     }
 
     /**

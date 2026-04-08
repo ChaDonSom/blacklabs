@@ -141,6 +141,7 @@ class DeployToProduction extends Command
             Log::debug("Target version: $targetVersion");
         } elseif ($this->isIssueBranch($versionFromBranch)) {
             Log::debug('Branch is an issue branch; defaulting to patch bump.');
+            // Use the 'patch' keyword here; message will say "applying patch bump" to accurately reflect this.
             $targetVersion = 'patch';
         } else {
             $this->error("Unable to determine version bump from branch {$branch}.");
@@ -155,8 +156,14 @@ class DeployToProduction extends Command
         }
 
         // Tag it and push
-        $this->info("Setting version from {$currentVersion} to {$targetVersion}.");
-        Log::debug("Setting version from {$currentVersion} to {$targetVersion}.");
+        $isExactVersion = $this->isVersionNumber($targetVersion);
+        if ($isExactVersion) {
+            $this->info("Setting version from {$currentVersion} to {$targetVersion}.");
+            Log::debug("Setting version from {$currentVersion} to {$targetVersion}.");
+        } else {
+            $this->info("Running {$targetVersion} bump from {$currentVersion}.");
+            Log::debug("Running {$targetVersion} bump from {$currentVersion}.");
+        }
         $this->runProcess("npm version {$targetVersion}");
 
         $this->info('Pushing production branch.');
