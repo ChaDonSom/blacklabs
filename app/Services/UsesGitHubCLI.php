@@ -37,13 +37,16 @@ trait UsesGitHubCLI
 query($owner: String!, $repo: String!, $issueNumber: Int!) {
   repository(owner: $owner, name: $repo) {
     issue(number: $issueNumber) {
-      number
-      title
       linkedBranches(first: 10) {
         nodes {
           ref {
             name
           }
+        }
+      }
+      closingPullRequests(first: 10) {
+        nodes {
+          headRefName
         }
       }
     }
@@ -52,7 +55,8 @@ query($owner: String!, $repo: String!, $issueNumber: Int!) {
 GRAPHQL);
 
             try {
-                $jqExpression = '.data.repository.issue.linkedBranches.nodes[0].ref.name';
+                // Try linkedBranches first, fall back to the head branch of a closing PR
+                $jqExpression = '.data.repository.issue.linkedBranches.nodes[0].ref.name // .data.repository.issue.closingPullRequests.nodes[0].headRefName';
 
                 $result = $this->runProcess(
                     'gh api graphql '.
