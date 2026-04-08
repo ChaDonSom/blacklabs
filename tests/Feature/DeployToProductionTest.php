@@ -138,6 +138,56 @@ it('fails when the release branch name does not contain a supported version form
         ->assertExitCode(1);
 });
 
+it('deletes the release branch worktree when the worktree is clean', function () {
+    $releaseBranch = 'release/v1.0.1/456';
+    makeReleaseBranchForDeploy($this->originRepo, $this->repo, $this->defaultBranch, $releaseBranch, 'README-456-release.md');
+
+    $worktreePath = '/tmp/test-worktree';
+    exec('git -C /tmp/test-repo worktree add ' . escapeshellarg($worktreePath) . ' ' . escapeshellarg($releaseBranch));
+
+    $this->artisan('deploy-to-production ' . $releaseBranch)
+        ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
+        ->assertExitCode(0);
+
+    $branchListOutput = shell_exec('git -C /tmp/test-repo branch --list ' . escapeshellarg($releaseBranch));
+
+    expect(is_dir($worktreePath))->toBeFalse()
+        ->and(trim((string) $branchListOutput))->toBe('');
+})->group('dummy-git-repo');
+
+it('warns and skips local deletion when the release branch worktree has unsaved changes', function () {
+    $releaseBranch = 'release/v1.0.1/456';
+    makeReleaseBranchForDeploy($this->originRepo, $this->repo, $this->defaultBranch, $releaseBranch, 'README-456-release.md');
+
+    $worktreePath = '/tmp/test-worktree';
+    exec('git -C /tmp/test-repo worktree add ' . escapeshellarg($worktreePath) . ' ' . escapeshellarg($releaseBranch));
+    // Create an untracked file to make the worktree dirty
+    touch($worktreePath . '/dirty-file.txt');
+
+    $this->artisan('deploy-to-production ' . $releaseBranch)
+        ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
+        ->expectsOutput("Branch '{$releaseBranch}' is checked out at '{$worktreePath}' with unsaved changes. Leaving it here for you.")
+        ->assertExitCode(0);
+
+    $localBranchExitCode = null;
+    exec(
+        'git -C /tmp/test-repo show-ref --verify --quiet ' . escapeshellarg("refs/heads/{$releaseBranch}"),
+        $localBranchOutput,
+        $localBranchExitCode
+    );
+
+    $remoteBranchExitCode = null;
+    exec(
+        'git -C /tmp/test-repo show-ref --verify --quiet ' . escapeshellarg("refs/remotes/origin/{$releaseBranch}"),
+        $remoteBranchOutput,
+        $remoteBranchExitCode
+    );
+
+    expect(is_dir($worktreePath))->toBeTrue()
+        ->and($localBranchExitCode)->toBe(0)
+        ->and($remoteBranchExitCode)->toBe(0);
+})->group('dummy-git-repo');
+
 it('deploys to the exact skipped version when versions are not sequential', function () {
     // Simulate a scenario where v1.1.0 was skipped (another release took it) and we deploy v1.2.0.
     // With exact-version deployment, production should end up at v1.2.0, not v1.1.0.

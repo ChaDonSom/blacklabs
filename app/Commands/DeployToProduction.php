@@ -189,8 +189,11 @@ class DeployToProduction extends Command
         $this->runProcess('git push');
 
         $this->info("Deleting {$branch}.");
-        $this->runProcess("git branch -D {$branch}");
-        $this->runProcess("git push origin --delete {$branch}");
+        if ($this->deleteLocalBranch($branch)) {
+            $this->runProcess('git push origin --delete ' . escapeshellarg($branch));
+        } else {
+            $this->warn("Skipping remote deletion of {$branch} because local branch could not be deleted.");
+        }
 
         $this->info('New version: '.$this->runProcess('git describe --tags --abbrev=0'));
         $this->info('Done!');

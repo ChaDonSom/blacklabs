@@ -109,6 +109,57 @@ trait ManagesGitWorktrees
     }
 
     /**
+     * Delete a local branch, gracefully handling the case where the branch is checked out
+     * in a git worktree.
+     *
+     * - If the branch is in a **clean** worktree, removes the worktree directory and then
+     *   deletes the branch as normal.
+     * - If the branch is in a **dirty** worktree (uncommitted changes), emits a warning and
+     *   skips local deletion, returning false so the caller can decide what to do next.
+     * - If the branch is not in any worktree, deletes it with `git branch -D`.
+     *
+     * @return bool True if the branch was deleted locally, false if it was skipped.
+     */
+    protected function deleteLocalBranch(string $branch): bool
+    {
+        $worktreePath = $this->findWorktreeForBranch($branch);
+
+        if ($worktreePath !== null) {
+            try {
+                $status = $this->runProcess('git -C ' . escapeshellarg($worktreePath) . ' status --porcelain');
+            } catch (\Exception $e) {
+                $this->warn("Could not check worktree status at '{$worktreePath}': {$e->getMessage()}. Skipping local branch deletion.");
+
+                return false;
+            }
+
+            if (! empty($status)) {
+                $this->warn("Branch '{$branch}' is checked out at '{$worktreePath}' with unsaved changes. Leaving it here for you.");
+
+                return false;
+            }
+
+            try {
+                $this->runProcess('git worktree remove ' . escapeshellarg($worktreePath));
+            } catch (\Exception $e) {
+                $this->warn("Could not remove worktree at '{$worktreePath}': {$e->getMessage()}. Skipping local branch deletion.");
+
+                return false;
+            }
+        }
+
+        try {
+            $this->runProcess('git branch -D ' . escapeshellarg($branch));
+        } catch (\Exception $e) {
+            $this->warn("Could not delete local branch '{$branch}': {$e->getMessage()}.");
+
+            return false;
+        }
+
+        return true;
+    }
+
+    /**
      * Get the stored worktree preference ('always', or null if not set).
      */
     protected function getWorktreePreference(): ?string
