@@ -149,7 +149,10 @@ it('deletes the release branch worktree when the worktree is clean', function ()
         ->expectsQuestion('Please type the name of the production branch to continue.', 'forge-production')
         ->assertExitCode(0);
 
-    expect(is_dir($worktreePath))->toBeFalse();
+    $branchListOutput = shell_exec('git -C /tmp/test-repo branch --list ' . escapeshellarg($releaseBranch));
+
+    expect(is_dir($worktreePath))->toBeFalse()
+        ->and(trim((string) $branchListOutput))->toBe('');
 })->group('dummy-git-repo');
 
 it('warns and skips local deletion when the release branch worktree has unsaved changes', function () {
@@ -166,5 +169,21 @@ it('warns and skips local deletion when the release branch worktree has unsaved 
         ->expectsOutput("Branch '{$releaseBranch}' is checked out at '{$worktreePath}' with unsaved changes. Leaving it here for you.")
         ->assertExitCode(0);
 
-    expect(is_dir($worktreePath))->toBeTrue();
+    $localBranchExitCode = null;
+    exec(
+        'git -C /tmp/test-repo show-ref --verify --quiet ' . escapeshellarg("refs/heads/{$releaseBranch}"),
+        $localBranchOutput,
+        $localBranchExitCode
+    );
+
+    $remoteBranchExitCode = null;
+    exec(
+        'git -C /tmp/test-repo show-ref --verify --quiet ' . escapeshellarg("refs/remotes/origin/{$releaseBranch}"),
+        $remoteBranchOutput,
+        $remoteBranchExitCode
+    );
+
+    expect(is_dir($worktreePath))->toBeTrue()
+        ->and($localBranchExitCode)->toBe(0)
+        ->and($remoteBranchExitCode)->toBe(0);
 })->group('dummy-git-repo');

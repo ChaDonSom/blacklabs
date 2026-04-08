@@ -139,10 +139,22 @@ trait ManagesGitWorktrees
                 return false;
             }
 
-            $this->runProcess('git worktree remove ' . escapeshellarg($worktreePath));
+            try {
+                $this->runProcess('git worktree remove ' . escapeshellarg($worktreePath));
+            } catch (\Exception $e) {
+                $this->warn("Could not remove worktree at '{$worktreePath}': {$e->getMessage()}. Skipping local branch deletion.");
+
+                return false;
+            }
         }
 
-        $this->runProcess('git branch -D ' . escapeshellarg($branch));
+        try {
+            $this->runProcess('git branch -D ' . escapeshellarg($branch));
+        } catch (\Exception $e) {
+            $this->warn("Could not delete local branch '{$branch}': {$e->getMessage()}.");
+
+            return false;
+        }
 
         return true;
     }
