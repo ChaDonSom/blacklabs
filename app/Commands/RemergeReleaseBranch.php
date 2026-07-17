@@ -56,7 +56,7 @@ class RemergeReleaseBranch extends Command
             // Get the release branches that include the given issues in their names
             $this->info('No release branch given, trying to find the release branch from the issues...');
             $releaseBranches = $this->findReleaseBranches(explode(',', $issues));
-            $this->info('Found release branches: '.implode(', ', $releaseBranches));
+            $this->info('Found release branches: ' . implode(', ', $releaseBranches));
             if (count($releaseBranches) === 0) {
                 $this->error('No release branches found for the given issues.');
 
@@ -66,8 +66,8 @@ class RemergeReleaseBranch extends Command
             } elseif (count($releaseBranches) > 1) {
                 $releaseBranch = search(
                     label: $message ?? 'What branch would you like to merge into?',
-                    options: fn (string $value) => strlen($value) > 0
-                        ? collect($releaseBranches)->filter(fn ($branch) => str_contains($branch, $value))->values()->toArray()
+                    options: fn(string $value) => strlen($value) > 0
+                        ? collect($releaseBranches)->filter(fn($branch) => str_contains($branch, $value))->values()->toArray()
                         : collect($releaseBranches)->toArray(),
                     scroll: 10,
                 );
@@ -77,8 +77,8 @@ class RemergeReleaseBranch extends Command
             $releaseBranch = str_replace('origin/', '', $releaseBranch);
         }
 
-        // Find the issue branches from the issue numbers
-        $issueBranches = $this->findIssueBranches(explode(',', $issues));
+        // Trim whitespace from the branch name
+        $releaseBranch = trim($releaseBranch);
 
         // Validate the release branch name to avoid shell command injection
         // Allow only typical safe characters for branch names: letters, numbers, dots, slashes, underscores, and hyphens
@@ -88,6 +88,9 @@ class RemergeReleaseBranch extends Command
 
             return;
         }
+
+        // Find the issue branches from the issue numbers
+        $issueBranches = $this->findIssueBranches(explode(',', $issues));
 
         // Check out the release branch
         $this->info("Checking out the release branch {$releaseBranch}...");
@@ -99,7 +102,7 @@ class RemergeReleaseBranch extends Command
 
         // Make sure we're up to date with the remote release branch
         $this->info('Pulling the latest changes from the release branch...');
-        $this->runProcess('git pull origin '.escapeshellarg($releaseBranch));
+        $this->runProcess('git pull origin ' . escapeshellarg($releaseBranch));
 
         // Merge the issue branches into the release branch
         $this->info("Merging the issue branches into the release branch {$releaseBranch}...");
@@ -114,7 +117,7 @@ class RemergeReleaseBranch extends Command
             if (str_contains($e->getMessage(), 'already exists')) {
                 $this->warn('The git tag already exists. Please set it up manually.');
             } else {
-                $this->error('Failed to apply the version for some other reason: '.$e->getMessage());
+                $this->error('Failed to apply the version for some other reason: ' . $e->getMessage());
                 $this->error('Please set it up manually, then push the branch and tags.');
                 if (! $wasAlreadyOnReleaseBranch && ! $switchedToWorktree) {
                     $this->runProcess('git checkout -');
@@ -127,7 +130,7 @@ class RemergeReleaseBranch extends Command
 
         // Push the branch and the tags
         $this->info('Pushing the branch and the tag...');
-        $this->runProcess('git push origin '.escapeshellarg($releaseBranch).' --follow-tags');
+        $this->runProcess('git push origin ' . escapeshellarg($releaseBranch) . ' --follow-tags');
 
         // Check back out to the original branch (only if we did a normal checkout, not a worktree switch)
         if (! $wasAlreadyOnReleaseBranch && ! $switchedToWorktree) {
@@ -135,7 +138,7 @@ class RemergeReleaseBranch extends Command
         }
 
         $this->info('Done!');
-        $this->info('Tag: '.trim($tag));
+        $this->info('Tag: ' . trim($tag));
     }
 
     /**
@@ -168,7 +171,7 @@ class RemergeReleaseBranch extends Command
             );
             $releaseBranches = array_merge($releaseBranches, array_filter(
                 explode("\n", $thisIssuesBranches),
-                fn ($branch) => strlen($branch) > 0
+                fn($branch) => strlen($branch) > 0
             ));
         }
 
