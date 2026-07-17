@@ -74,15 +74,15 @@ class CreateReleaseBranch extends Command
         Log::debug("Version: {$version}");
 
         if ($isExplicitVersion) {
-            // For explicit versions, fail fast if already reserved remotely.
-            if ($this->isVersionReservedRemotely($version)) {
+            // For explicit versions, fail fast only if this exact version is reserved remotely.
+            if ($this->isExactVersionReservedRemotely($version)) {
                 $this->error("Version {$version} is already reserved remotely. Please choose a different version.");
 
                 return 1;
             }
         } else {
             // For level-based versions, advance until we find an unreserved version.
-            while ($this->isVersionReservedRemotely($version)) {
+            while ($this->isVersionFamilyReservedRemotely($version)) {
                 $this->warn("Version {$version} is already reserved remotely. Trying next version...");
                 $version = $this->nextVersionForLevel($version, $level);
             }
@@ -120,7 +120,7 @@ class CreateReleaseBranch extends Command
 
         $this->info('Pulling issue branches into release branch.');
         $issuesArray = explode(',', $issues);
-        Log::debug('Issues array: '.print_r($issuesArray, true));
+        Log::debug('Issues array: ' . print_r($issuesArray, true));
         $issueBranches = $this->findIssueBranches($issuesArray);
 
         $this->mergeBranches($issueBranches);
@@ -132,7 +132,7 @@ class CreateReleaseBranch extends Command
             if (str_contains($e->getMessage(), 'already exists')) {
                 $this->warn('The git tag already exists. Please set it up manually.');
             } else {
-                $this->error('Failed to apply the version for some other reason: '.$e->getMessage());
+                $this->error('Failed to apply the version for some other reason: ' . $e->getMessage());
                 $this->error('Please set it up manually, then push the branch and tags, and create the PR.');
 
                 return 1;
@@ -143,7 +143,7 @@ class CreateReleaseBranch extends Command
         $this->runProcess("git push --atomic origin {$branchName} {$version}");
 
         $this->info('Creating release PR.');
-        $prBody = '- #'.implode("\n- #", $issuesArray)."\n";
+        $prBody = '- #' . implode("\n- #", $issuesArray) . "\n";
         // We don't run this in testing mode, because I don't feel like figuring out how to mock the gh command for now.
         if (! app()->runningUnitTests()) {
             try {
@@ -169,7 +169,22 @@ class CreateReleaseBranch extends Command
     /**
      * Check whether a version is already reserved on the remote (tag or release branch exists).
      */
-    private function isVersionReservedRemotely(string $version): bool
+    private function isExactVersionReservedRemotely(string $version): bool
+    {
+        $exactTag = $this->runProcess("git ls-remote --tags origin 'refs/tags/{$version}'");
+        if (! empty($exactTag)) {
+            return true;
+        }
+
+        $exactBranches = $this->runProcess("git ls-remote --heads origin 'refs/heads/release/{$version}/*'");
+
+        return ! empty($exactBranches);
+    }
+
+    /**
+     * Check whether a version family is already reserved on the remote.
+     */
+    private function isVersionFamilyReservedRemotely(string $version): bool
     {
         // Strip prerelease counter (v0.57.0-0 → v0.57.0) to check the exact base version and its prerelease variants.
         $baseVersion = preg_replace('/-\d+$/', '', $version);
@@ -206,11 +221,11 @@ class CreateReleaseBranch extends Command
         [$major, $minor, $patch] = array_map('intval', explode('.', $base));
 
         if (str_contains($level, 'major')) {
-            return 'v'.($major + 1).'.0.0-0';
+            return 'v' . ($major + 1) . '.0.0-0';
         } elseif (str_contains($level, 'minor')) {
-            return 'v'.$major.'.'.($minor + 1).'.0-0';
+            return 'v' . $major . '.' . ($minor + 1) . '.0-0';
         } else {
-            return 'v'.$major.'.'.$minor.'.'.($patch + 1).'-0';
+            return 'v' . $major . '.' . $minor . '.' . ($patch + 1) . '-0';
         }
     }
 

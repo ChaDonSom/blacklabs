@@ -96,12 +96,12 @@ it('can skip missing issue branches', function () {
 })->group('dummy-git-repo');
 
 it('can use provided missing issue branches', function () {
-    $this->branchThreeName = 'different-name-'.Str::kebab(collect(fake()->words())->join('-'));
+    $this->branchThreeName = 'different-name-' . Str::kebab(collect(fake()->words())->join('-'));
     $this->repo->createBranch($this->branchThreeName, true);
     touch('./README-324.md');
     $this->repo->addAllChanges();
     $this->repo->commit('324 commit');
-    exec('git push --set-upstream origin '.$this->branchThreeName);
+    exec('git push --set-upstream origin ' . $this->branchThreeName);
 
     $this->artisan('create-release-branch patch 123,324')
         ->expectsOutput('Checking out dev branch.')
@@ -196,5 +196,22 @@ it('fails fast when an explicit version is already reserved on the remote', func
         ->expectsOutput('Pulling latest dev branch.')
         ->expectsOutput('Version v1.5.0-0 is already reserved remotely. Please choose a different version.')
         ->assertExitCode(1)
+        ->run();
+})->group('dummy-git-repo');
+
+it('allows an explicit prerelease version when only a sibling prerelease is reserved remotely', function () {
+    // Reserve v1.5.0-0 remotely, but request v1.5.0-1 explicitly.
+    exec('git -C /tmp/test-repo-origin tag v1.5.0-0');
+
+    $this->artisan('create-release-branch v1.5.0-1 123,456')
+        ->expectsOutput('Checking out dev branch.')
+        ->expectsOutput('Pulling latest dev branch.')
+        ->expectsOutput('Creating release branch for version v1.5.0-1.')
+        ->expectsOutput('Pulling issue branches into release branch.')
+        ->expectsOutput('Pushing release branch to origin.')
+        ->expectsOutput('Creating release PR.')
+        ->expectsOutput('Done.')
+        ->expectsOutput('Branch: release/v1.5.0-1/123-456')
+        ->assertExitCode(0)
         ->run();
 })->group('dummy-git-repo');
