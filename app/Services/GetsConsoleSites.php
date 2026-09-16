@@ -35,7 +35,7 @@ trait GetsConsoleSites
             return $siteNames;
         }
 
-        $servers = $request->get('https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . '/servers?include=tags')->getBody()->getContents();
+        $servers = $request->get('https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . '/servers?include=tags')->throw()->getBody()->getContents();
 
         $servers = collect(json_decode($servers)->data)
             ->filter(fn($server) => collect($server->relationships->tags->data)->map(fn($tag) => $tag->id)->contains(self::CONSOLE_TAG_ID));
@@ -79,7 +79,7 @@ trait GetsConsoleSites
             return $siteNames;
         }
 
-        $servers = $request->get('https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . '/servers')->getBody()->getContents();
+        $servers = $request->get('https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . '/servers')->throw()->getBody()->getContents();
 
         $servers = collect(json_decode($servers)->data)
             ->filter(fn($server) => collect($server->relationships->tags->data)->map(fn($tag) => $tag->id)->contains(self::CONSOLE_TAG_ID));
