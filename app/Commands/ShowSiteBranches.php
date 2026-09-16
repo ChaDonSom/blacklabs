@@ -37,8 +37,8 @@ class ShowSiteBranches extends Command
 
         $this->table(['Site', 'Branch'], $sites->map(function ($site) {
             return [
-                'name' => $site->name,
-                'branch' => $site->repository_branch,
+                'name' => $site->attributes->name,
+                'branch' => $site->attributes->repository->branch ?? null,
             ];
         }));
     }

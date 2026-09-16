@@ -15,7 +15,9 @@
     - `create-release-branch` builds `release/<version>/<issues>` from `dev`, pulls issue branches (local or via GitHub), merges them, tags with `npm version`, pushes branch+tags, optionally creates PR via `gh`.
     - `deploy-to-production` guards with `forge-production` confirmation, merges chosen release into production, bumps version (npm), pushes tags, merges production into `dev`, deletes release branch.
     - `app:deploy` (hidden) builds Phar after running tests, tags, pushes; only allowed in upstream repo with a clean default branch.
-- Forge/branch helpers use `UsesForgeHttp` (token at `storage/app/forge-api-token.txt`) and `UsesGitHubCLI` (GraphQL via `gh`) to map issues↔branches.
+- Forge/branch helpers use `UsesForgeHttp` (token at `storage/app/forge-api-token.txt`, org ID at `storage/app/forge-org-id.txt`) and `UsesGitHubCLI` (GraphQL via `gh`) to map issues↔branches.
+  - Setup: `php blacklabs app:store-forge-api-token <token>` and `php blacklabs app:store-forge-org-id <orgId>`
+  - Both stored in Storage (not env vars) for Phar compatibility.
 - App boot adjusts logging/cache/filesystem paths for Phar vs local runs (see `AppServiceProvider`).
 
 ## Conventions & Patterns
@@ -31,4 +33,5 @@
 - Prefer `RunsProcesses::runProcess` for shelling out; it throws on failure and returns trimmed output.
 - When adding commands, register via `app/Commands` (auto-loaded) and keep side effects behind confirmations consistent with existing prompts.
 - Packaging uses `box.json`; ensure new files required at runtime are included in Phar (directories list) if added outside existing paths.
+- Forge API v1 is deprecated; use org-based endpoints `/api/orgs/{org_id}/servers/*` instead of `/api/v1/servers/*`.
 - Skills: repository skills live in `.github/skills/`; load and manage skills each session (`/skills reload`, add/remove/update as needed). Provided skills: `laravel-zero` (core CLI workflows), `forge-deploy` (Forge flows), `box-phar` (packaging/Box).

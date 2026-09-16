@@ -25,6 +25,8 @@ it('adds 1 issue', function () {
         ->expectsOutput('Syncing branch issues with given issues...')
         // ->expectsOutput('Updating the site branch and deploying...')
         ->assertExitCode(0);
+
+    removeForgeOrgId();
 })->group('dummy-git-repo')->todo();
 
 it('adds 2 issues', function () {
@@ -47,6 +49,8 @@ it('adds 2 issues', function () {
         ->expectsOutput('Syncing branch issues with given issues...')
         ->expectsOutput('Updating the site branch and deploying...')
         ->assertExitCode(0);
+
+    removeForgeOrgId();
 })->group('dummy-git-repo')->todo();
 
 it('removes 1 issue', function () {
@@ -62,6 +66,8 @@ it('removes 1 issue', function () {
         ->expectsOutput('Creating new release branch...')
         ->expectsOutput('Updating the site branch and deploying...')
         ->assertExitCode(0);
+
+    removeForgeOrgId();
 })->group('dummy-git-repo')->todo();
 
 it('removes 2 issues', function () {
@@ -86,6 +92,8 @@ it('removes 2 issues', function () {
         ->expectsOutput('Creating new release branch...')
         ->expectsOutput('Updating the site branch and deploying...')
         ->assertExitCode(0);
+
+    removeForgeOrgId();
 })->group('dummy-git-repo')->todo();
 
 /**
@@ -93,6 +101,7 @@ it('removes 2 issues', function () {
  */
 function fakeForgeApi(string $releaseBranchName, string $siteName = 'example.com')
 {
+    $orgId = '1';
     $fakeServers = [
         'servers' => [
             [
@@ -120,8 +129,15 @@ function fakeForgeApi(string $releaseBranchName, string $siteName = 'example.com
     ];
     Http::preventStrayRequests();
     Http::fake([
-        'forge.laravel.com/api/v1/servers' => Http::sequence()->push($fakeServers)->whenEmpty(Http::response($fakeServers)),
-        'forge.laravel.com/api/v1/servers/123/sites' => Http::sequence()->push($fakeSites)->whenEmpty(Http::response($fakeSites)),
-        'forge.laravel.com/api/v1/servers/123/sites/123*' => Http::sequence()->whenEmpty(Http::response(null, 200)),
+        'forge.laravel.com/api/orgs/*/servers' => Http::sequence()->push($fakeServers)->whenEmpty(Http::response($fakeServers)),
+        'forge.laravel.com/api/orgs/*/servers/123/sites' => Http::sequence()->push($fakeSites)->whenEmpty(Http::response($fakeSites)),
+        'forge.laravel.com/api/orgs/*/servers/123/sites/123*' => Http::sequence()->whenEmpty(Http::response(null, 200)),
     ]);
+    // Store org ID for tests
+    \Illuminate\Support\Facades\Storage::put('forge-org-id.txt', $orgId);
+}
+
+function removeForgeOrgId()
+{
+    \Illuminate\Support\Facades\Storage::delete('forge-org-id.txt');
 }

@@ -12,9 +12,9 @@ use function Laravel\Prompts\search;
 
 class UpdateSiteBranchAndDeploy extends Command
 {
+    use ChoosesBranch;
     use GetsConsoleSites;
     use UsesForgeHttp;
-    use ChoosesBranch;
 
     /**
      * The name and signature of the console command.
@@ -51,7 +51,7 @@ class UpdateSiteBranchAndDeploy extends Command
             label: 'Which site would you like to update and deploy?',
             options: function (string $input) use ($sites) {
                 return $sites
-                    ->map(fn($s) => $s->name)
+                    ->map(fn($s) => $s->attributes->name)
                     ->filter(fn($name) => str_contains(strtolower($name), strtolower($input)))
                     ->keyBy(fn($name) => $name)
                     ->toArray();
@@ -59,40 +59,51 @@ class UpdateSiteBranchAndDeploy extends Command
             scroll: 10,
         );
 
-        $chosenSite = $sites->firstWhere('name', $chosenSite);
+        $chosenSite = $sites->firstWhere('attributes.name', $chosenSite);
 
         // If the site is blacklabsconsole.com, warn and make the user confirm by typing the site name
-        if ($chosenSite->name == 'blacklabsconsole.com') {
+        if ($chosenSite->attributes->name == 'blacklabsconsole.com') {
             $this->warn('[WARNING] You are about to deploy to production! This will change the branch of production away from forge-production!');
-            $inputName = $this->ask("Please type the name of the site to continue.");
-            if ($inputName !== $chosenSite->name) {
+            $inputName = $this->ask('Please type the name of the site to continue.');
+            if ($inputName !== $chosenSite->attributes->name) {
                 $this->error("You didn't type the name of the site correctly. Aborting.");
+
                 return 1;
             }
         }
 
-        $this->info("Updating site {$chosenSite->id}...");
+        $this->info("Updating site {$chosenSite->attributes->name}...");
 
-        $chosenSite->repository_branch = $this->chooseBranch(
+        $chosenBranch = $this->chooseBranch(
             overrideBranch: $branch,
-            message: "Which branch would you like to deploy?"
+            message: 'Which branch would you like to deploy?'
         );
 
         // Update the site using forge's API
-        $this->info("Updating site {$chosenSite->name} to branch {$chosenSite->repository_branch}...");
-        $this->client->put(
-            'https://forge.laravel.com/api/v1/servers/' . $chosenSite->server_id . '/sites/' . $chosenSite->id . '/git',
+        $this->info("Updating site {$chosenSite->attributes->name} to branch {$chosenBranch}...");
+        $putResult = $this->client->put(
+            'https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . '/servers/' . $chosenSite->attributes->server_id . '/sites/' . $chosenSite->id . '/git',
             [
-                'branch' => $chosenSite->repository_branch
+                'source_control_provider' => strtolower($chosenSite->attributes->repository->provider),
+                'repository' => 'blacklabapps/console',
+                'branch' => $chosenBranch,
             ]
         );
 
+        if ($putResult->failed()) {
+            dd($putResult->json());
+        }
+
         // Deploy it!
-        $this->info("Deploying site {$chosenSite->name}...");
-        $this->client->post(
-            'https://forge.laravel.com/api/v1/servers/' . $chosenSite->server_id . '/sites/' . $chosenSite->id . '/deployment/deploy',
+        $this->info("Deploying site {$chosenSite->attributes->name}...");
+        $postResult = $this->client->post(
+            'https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . '/servers/' . $chosenSite->attributes->server_id . '/sites/' . $chosenSite->id . '/deployments',
         );
 
-        $this->info("Site {$chosenSite->name} updated and deployment triggered successfully.");
+        if ($postResult->failed()) {
+            dd($postResult->json());
+        }
+
+        $this->info("Site {$chosenSite->attributes->name} updated and deployment triggered successfully.");
     }
 }
