@@ -103,32 +103,42 @@ function fakeForgeApi(string $releaseBranchName, string $siteName = 'example.com
 {
     $orgId = '1';
     $fakeServers = [
-        'servers' => [
+        'data' => [
             [
                 'id' => 123,
-                'name' => 'example',
-                'ip_address' => "12.34.56.78",
-                'tags' => [
-                    [
-                        'id' => 123,
-                        'name' => 'console',
+                'attributes' => [
+                    'name' => 'example',
+                    'ip_address' => '12.34.56.78',
+                ],
+                'relationships' => [
+                    'tags' => [
+                        'data' => [
+                            [
+                                'id' => 7445,
+                                'name' => 'console',
+                            ],
+                        ],
                     ],
                 ],
             ],
         ],
     ];
     $fakeSites = [
-        'sites' => [
+        'data' => [
             [
                 'id' => 123,
-                'name' => $siteName,
-                'repository_branch' => $releaseBranchName,
-                'server_id' => 123,
+                'attributes' => [
+                    'name' => $siteName,
+                    'repository' => [
+                        'branch' => $releaseBranchName,
+                    ],
+                ],
             ],
         ],
     ];
     Http::preventStrayRequests();
     Http::fake([
+        'forge.laravel.com/api/orgs/*/servers?*' => Http::sequence()->push($fakeServers)->whenEmpty(Http::response($fakeServers)),
         'forge.laravel.com/api/orgs/*/servers' => Http::sequence()->push($fakeServers)->whenEmpty(Http::response($fakeServers)),
         'forge.laravel.com/api/orgs/*/servers/123/sites' => Http::sequence()->push($fakeSites)->whenEmpty(Http::response($fakeSites)),
         'forge.laravel.com/api/orgs/*/servers/123/sites/123*' => Http::sequence()->whenEmpty(Http::response(null, 200)),
