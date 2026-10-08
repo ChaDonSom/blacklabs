@@ -12,6 +12,10 @@ use function Laravel\Prompts\search;
 
 class UpdateSiteBranchAndDeploy extends Command
 {
+    private const BRANCH_UPDATE_TIMEOUT_SECONDS = 120;
+
+    private const BRANCH_UPDATE_POLL_INTERVAL_MICROSECONDS = 2_000_000;
+
     use ChoosesBranch;
     use GetsConsoleSites;
     use UsesForgeHttp;
@@ -94,6 +98,16 @@ class UpdateSiteBranchAndDeploy extends Command
             dd($putResult->json());
         }
 
+        $this->info('Waiting for Forge to finish updating the site branch...');
+        if (! $this->waitForBranchUpdate(
+            $chosenSite->attributes->server_id,
+            $chosenSite->id,
+            $chosenSite->attributes->name,
+            $chosenBranch,
+        )) {
+            return 1;
+        }
+
         // Deploy it!
         $this->info("Deploying site {$chosenSite->attributes->name}...");
         $postResult = $this->client->post(
@@ -105,5 +119,33 @@ class UpdateSiteBranchAndDeploy extends Command
         }
 
         $this->info("Site {$chosenSite->attributes->name} updated and deployment triggered successfully.");
+    }
+
+    private function waitForBranchUpdate($serverId, $siteId, string $siteName, string $branch): bool
+    {
+        $url = 'https://forge.laravel.com/api/orgs/' . $this->getForgeOrgId() . "/servers/{$serverId}/sites";
+        $deadline = hrtime(true) + self::BRANCH_UPDATE_TIMEOUT_SECONDS * 1_000_000_000;
+
+        while (hrtime(true) < $deadline) {
+            $response = $this->client->get($url, ['filter[name]' => $siteName]);
+            $response->throw();
+
+            $site = collect($response->json('data', []))->first(
+                fn ($site) => (string) ($site['id'] ?? '') === (string) $siteId,
+            );
+            $repository = $site['attributes']['repository'] ?? [];
+            if (($repository['branch'] ?? null) === $branch && ($repository['status'] ?? null) === 'installed') {
+                return true;
+            }
+
+            $remainingNanoseconds = $deadline - hrtime(true);
+            if ($remainingNanoseconds > 0) {
+                usleep((int) min(self::BRANCH_UPDATE_POLL_INTERVAL_MICROSECONDS, $remainingNanoseconds / 1_000));
+            }
+        }
+
+        $this->error("Forge did not confirm branch '{$branch}' within " . self::BRANCH_UPDATE_TIMEOUT_SECONDS . ' seconds. Deployment was not triggered.');
+
+        return false;
     }
 }

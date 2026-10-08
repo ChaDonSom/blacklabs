@@ -139,7 +139,8 @@ blacklabs update-site-branch-and-deploy
 1. First, it asks you which site to deploy to, out of the list of sites from Forge, filtered by sites that have the 'console' tag.
 2. Then, it asks you which branch to deploy. For the options here, it uses `git branch -r` (`-r` for 'remotes', showing only the branches that are pushed to origin).
 3. Then, it pings Forge to update that site's branch to the branch you chose.
-4. Then, it pings Forge again to initiate deployment for that site.
+4. Then, it checks the site until Forge reports the selected branch as installed. It waits up to 120 seconds.
+5. Then, it pings Forge to initiate deployment. If Forge does not confirm the branch in time, the command exits without deploying.
 
 ### Deploy to production
 
